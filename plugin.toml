@@ -1,0 +1,294 @@
+# Plex, as a lemonfiber plugin.
+#
+# Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md
+# Specification: SPEC.md, beside this file.
+#
+# DRAFT. The digests below are placeholders and the recipe has nothing to run it
+# until F8 lands in 0.18.0. What this file is for now is to hold SPEC.md to
+# something checkable: every rule in the manifest contract runs over it today.
+#
+# Everything lemonfiber does on this plugin's behalf comes from this file, and it
+# knows nothing about the plugin that is not declared here (ARCH-R83). Nothing in
+# it is executable, and nothing in it can be (F3-R1, F3-R6).
+
+schema_version = 1
+
+[plugin]
+id          = "plex"
+name        = "Plex"
+version     = "1.0.0"
+description = "Serves the library to the Plex clients already on the television, and signs the household in"
+without_it  = "The stack serves media through Jellyfin, and everyone signs in through Jellyfin"
+upstream    = "https://github.com/plexinc/pms-docker"
+license     = "Proprietary"
+forms       = ["tv", "movies", "music", "full"]
+
+# The forms that serve a library. `license` is the first proprietary one any
+# plugin has declared and the honest value for this image; whether the catalogue
+# accepts one is the first of the five open questions in SPEC.md.
+
+# ─── What runs ───────────────────────────────────────────────────────────────
+
+[[service]]
+id     = "plex"
+name   = "Plex"
+image  = "docker.io/plexinc/pms-docker"
+digest = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+tag    = "1.41.9.9961"
+port   = 32400
+# The point of this service is the television, so: `lan`. The address is
+# lemonfiber's to assign (ARCH-R88) and so is whether it is reachable by name at
+# all (ARCH-R104).
+bind   = "lan"
+# `/identity` answers before anything is claimed and without a credential, which
+# is what a health probe needs and is also, exactly, the `identifies` probe
+# `identity.source` asks for. One endpoint, two jobs, both legitimate.
+health = { kind = "http", path = "/identity", timeout_s = 90 }
+# `important`, never `critical`: a plugin may not declare itself critical, and
+# the ceiling is the right one here — losing this means nobody can watch.
+criticality = "important"
+takes_data  = true
+media_types = ["movies", "tv", "music"]
+config_path = "/config"
+# Two core names out of the published vocabulary and one of this plugin's own.
+# The core pair is the whole point: `identity.source` has exactly one bundled
+# declarer, so this is where substituting a plugin for a bundled service is worth
+# the most and is least proven. `plex:direct-play` is namespaced and inert —
+# nothing bundled consumes it — which is what F4's own example says it should be.
+provides = ["media.serve", "identity.source", "plex:direct-play"]
+
+# ─── Claims ──────────────────────────────────────────────────────────────────
+#
+# Two core capabilities and four probes between them. None of the recordings
+# exists yet: a fixture names the image digest it was taken against, and one
+# invented here would be the single kind of wrong this apparatus is built to
+# catch, sitting inside the apparatus. `just manifest` is red until somebody
+# with a Plex server records them once — SPEC.md § The recordings.
+#
+# `Accept: application/json` on the media.serve probes is load-bearing and not
+# decoration: Plex answers XML by default, and both of that capability's body
+# assertions are JSON ones. A manifest that left the header off would fail a
+# claim the service actually satisfies.
+
+[[claim]]
+capability = "media.serve"
+
+[[claim.probe]]
+id      = "guarded"
+request = { method = "GET", path = "/library/sections", headers = { Accept = "application/json" } }
+expect  = { status = 401 }
+fixture = "fixtures/library-sections-anonymous.json"
+
+[[claim.probe]]
+id      = "catalogue"
+request = { method = "GET", path = "/library/sections", headers = { Accept = "application/json", "X-Plex-Token" = "{{operator}}" } }
+expect  = { status = 200, json_has_keys = ["MediaContainer"] }
+fixture = "fixtures/library-sections-operator.json"
+
+[[claim]]
+capability = "identity.source"
+
+[[claim.probe]]
+id      = "identifies"
+request = { method = "GET", path = "/identity", headers = { Accept = "application/json" } }
+expect  = { status = 200, json_has_keys = ["MediaContainer"] }
+fixture = "fixtures/identity-anonymous.json"
+
+[[claim.probe]]
+id      = "guarded"
+request = { method = "GET", path = "/accounts", headers = { Accept = "application/json" } }
+expect  = { status = 401 }
+fixture = "fixtures/accounts-anonymous.json"
+
+# ─── Wiring ──────────────────────────────────────────────────────────────────
+
+[wiring]
+hostname        = "plex"
+dashboard_group = "Watch"
+
+# ─── The first-run flow ──────────────────────────────────────────────────────
+#
+# One captured value reaches two destinations, one of them a service this plugin
+# did not install. Every recipe written before this one would have made the pair
+# analysis a check over an empty set.
+
+[[recipe]]
+id    = "claim-and-furnish"
+title = "Claim the server, then point it at the library the stack already fills"
+why   = """
+A Plex server that has not been claimed belongs to whoever reaches it first, and \
+an unclaimed server on the household network is the same defect an unclaimed \
+Komga is. Claiming it is also the only way to obtain the token everything else \
+here needs, so the two are one flow rather than two.\
+"""
+
+[[recipe.step]]
+id      = "take-the-claim-code"
+call    = { method = "GET", to = "plex", path = "/identity" }
+expect  = { status = 200 }
+# `operator` is the one origin that means the person typed this. The code expires
+# four minutes after plex.tv issues it, which is why it is asked for at the
+# moment it is used rather than held in a form filled out earlier.
+capture = [{ name = "claim", from = "operator.claim_code", origin = "operator" }]
+
+[[recipe.step]]
+id     = "claim"
+call   = { method = "POST", to = "plex", path = "/:/claim?token={{claim}}" }
+expect = { status = 200 }
+
+[[recipe.step]]
+id      = "read-the-token"
+call    = { method = "GET", to = "plex", path = "/:/prefs" }
+expect  = { status = 200 }
+capture = [{ name = "plex_token", from = "xml.PlexOnlineToken", origin = "stack-service" }]
+
+[[recipe.step]]
+id     = "make-the-libraries"
+call   = { method = "POST", to = "plex", path = "/library/sections", headers = { "X-Plex-Token" = "{{plex_token}}" } }
+expect = { status = 200 }
+
+[[recipe.step]]
+id     = "tell-the-request-service"
+call   = { method = "POST", to = "seerr", path = "/api/v1/settings/plex", headers = { "X-Api-Key" = "{{plex_token}}" } }
+expect = { status = 200 }
+
+[[recipe.pair]]
+value = "claim"
+to    = "plex"
+
+[[recipe.pair]]
+value = "plex_token"
+to    = "plex"
+
+[[recipe.pair]]
+value = "plex_token"
+to    = "seerr"
+
+# ─── What is held, and what bundled thing changes ────────────────────────────
+
+[[secret]]
+id  = "plex-token"
+of  = "plex"
+why = "The request service signs the household in through Plex"
+
+[[override]]
+id  = "homepage.services.jellyfin"
+why = "The front door's Watch group points at Jellyfin, and after this install it is not what serves the library"
+
+# Note what the override is not: it does not remove Jellyfin, stop it, or touch
+# its data. It changes which service one front-door entry points at, which is
+# what keeps the substitution reversible.
+
+# ─── Contributed to registers lemonfiber already runs ────────────────────────
+
+[[contribution]]
+at        = "doctor.check"
+id        = "plex:claimed"
+title     = "Plex has an owner, so nobody else can become one"
+category  = "services"
+request   = { method = "GET", path = "/identity", headers = { Accept = "application/json" } }
+expect    = { status = 200, json = { MediaContainer = { claimed = true } } }
+fixture   = "fixtures/identity-claimed.json"
+timeout_s = 10
+why       = "An unclaimed Plex server hands ownership to whoever reaches it first."
+
+[[contribution]]
+at     = "doctor.remedy"
+id     = "plex:claim-it"
+for    = "plex:claimed"
+action = "Fetch a claim code from plex.tv/claim and run the plugin's first-run flow again"
+why    = "Until somebody does, the first caller on the household network becomes the owner."
+
+[[contribution]]
+at        = "doctor.check"
+id        = "plex:no-anonymous-lan"
+title     = "The catalogue still refuses a caller presenting nothing"
+category  = "credentials"
+request   = { method = "GET", path = "/library/sections", headers = { Accept = "application/json" } }
+expect    = { status = 401 }
+fixture   = "fixtures/library-sections-anonymous.json"
+timeout_s = 10
+why       = "One setting inside Plex makes the whole catalogue answer anyone on the household network, and the health probe stays green the entire time."
+
+[[contribution]]
+at     = "doctor.remedy"
+id     = "plex:clear-allowed-networks"
+for    = "plex:no-anonymous-lan"
+action = "In Plex, clear the list of networks allowed without authentication"
+why    = "A library readable without a credential is the household's collection published to every device on the network."
+
+[[contribution]]
+at        = "doctor.check"
+id        = "plex:not-published"
+title     = "Plex is not publishing itself to the internet on its own"
+category  = "network"
+request   = { method = "GET", path = "/:/prefs", headers = { Accept = "application/json" } }
+expect    = { status = 200, json = { MediaContainer = { publishServerOnPlexOnlineKey = false } } }
+fixture   = "fixtures/prefs-not-published.json"
+timeout_s = 10
+why       = "Plex can open its own way in through plex.tv's relay, which is a second door lemonfiber did not open and does not watch."
+
+[[contribution]]
+at     = "doctor.remedy"
+id     = "plex:stop-publishing"
+for    = "plex:not-published"
+action = "In Plex, turn off Remote Access"
+why    = "Reaching the library from away is lemonfiber's to arrange, so that there is one door and one place it is described."
+
+[[contribution]]
+at        = "doctor.check"
+id        = "plex:libraries-match"
+title     = "Every Plex library points where the stack files that media type"
+category  = "storage"
+request   = { method = "GET", path = "/library/sections", headers = { Accept = "application/json" } }
+expect    = { status = 200, json_at_least = { "MediaContainer.size" = 1 } }
+fixture   = "fixtures/library-sections-operator.json"
+timeout_s = 10
+why       = "A Plex library scanning the wrong directory files nothing, throws nothing, and shows an empty shelf for a media type the stack is still acquiring into."
+
+[[contribution]]
+at     = "doctor.remedy"
+id     = "plex:repoint-libraries"
+for    = "plex:libraries-match"
+action = "Point each Plex library at the matching directory under the stack's data root"
+why    = "Otherwise the acquisition half keeps working and the watching half stays empty, with nothing anywhere saying why."
+
+# ─── What this needs of lemonfiber ───────────────────────────────────────────
+#
+# `recipe.run` is what makes a build that cannot run the flow above refuse this
+# manifest by naming that capability, rather than parsing the block and skipping
+# it — which would install a Plex nobody claimed and nothing was told about.
+
+[requires]
+capabilities = [
+    "service.add",
+    "service.health.http",
+    "doctor.contribute",
+    "recipe.run",
+]
+
+# ─── Proofs ──────────────────────────────────────────────────────────────────
+
+[[proof]]
+id      = "identity-before-claim"
+title   = "It says which server it is before anybody has claimed it"
+fixture = "fixtures/identity-anonymous.json"
+why     = "Something has to be answerable before authentication or nothing could ever authenticate, and this is the part with nothing of the household's in it."
+request = { method = "GET", path = "/identity", headers = { Accept = "application/json" } }
+expect  = { status = 200, json_has_keys = ["MediaContainer"] }
+
+[[proof]]
+id      = "catalogue-refuses-anonymous"
+title   = "The catalogue refuses a caller presenting nothing"
+fixture = "fixtures/library-sections-anonymous.json"
+why     = "A proof reading only a status here would pass against a build with no library at all; this asserts the body Plex actually returns."
+request = { method = "GET", path = "/library/sections", headers = { Accept = "application/json" } }
+expect  = { status = 401, json_has_keys = ["errors"] }
+
+[[proof]]
+id      = "accounts-refuses-anonymous"
+title   = "It says nothing about who has an account here"
+fixture = "fixtures/accounts-anonymous.json"
+why     = "The line between this and the identity proof is the whole of identity.source: which server, to anybody; who is on it, to nobody."
+request = { method = "GET", path = "/accounts", headers = { Accept = "application/json" } }
+expect  = { status = 401, json_has_keys = ["errors"] }
