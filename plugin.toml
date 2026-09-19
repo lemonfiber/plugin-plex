@@ -65,10 +65,17 @@ provides = ["media.serve", "identity.source", "plex:direct-play"]
 # catch, sitting inside the apparatus. `just manifest` is red until somebody
 # with a Plex server records them once — SPEC.md § The recordings.
 #
-# `Accept: application/json` on the media.serve probes is load-bearing and not
-# decoration: Plex answers XML by default, and both of that capability's body
-# assertions are JSON ones. A manifest that left the header off would fail a
-# claim the service actually satisfies.
+# THE HEADERS BELOW ARE REFUSED BY THE PUBLISHED SCHEMA, deliberately left in.
+#
+# `PluginRequest` is {method, path} with additionalProperties: false, so a probe
+# cannot send `Accept: application/json` — and Plex answers XML without it,
+# while media.serve's `catalogue` probe permits only JSON body assertions. The
+# assertions cannot reach `MediaContainer.*` either: the expectation vocabulary
+# is flat and the runner looks a key up with `key not in body`.
+#
+# Written as Plex actually needs them rather than trimmed to what validates,
+# because a manifest edited until the gate went quiet would have hidden the one
+# finding this plugin exists to produce. SPEC.md § The finding.
 
 [[claim]]
 capability = "media.serve"

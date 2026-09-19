@@ -26,7 +26,7 @@ measured against.
 |---|---|---|---|
 | `[plugin]`, `[[service]]`, `[[proof]]`, `[requires]` | ✔ | ✔ | ✔ |
 | `[[contribution]]` at `doctor.check` / `doctor.remedy` | ✔ | ✔ | ✔ |
-| `[[claim]]` + `[[claim.probe]]` | ✔ | — | ✔ two capabilities |
+| `[[claim]]` + `[[claim.probe]]` | ✔ | — | two capabilities, **both blocked** |
 | A **core** capability that something asks for | inert | inert | `media.serve`, `identity.source` |
 | `[[recipe]]` / `.step` / `.pair` | ✘ | ✘ | ✔ one capture, three pairs |
 | `[[secret]]` | ✘ | ✘ | ✔ |
@@ -37,24 +37,89 @@ measured against.
 
 ### What writing it found
 
-The draft manifest beside this file was written first and run through the
-contract validator second, which is the order that produces findings rather than
-agreement. Four came out, and they are the substance of this document:
+The draft manifest beside this file was written first and run against the
+published schema and the contract second, which is the order that produces
+findings rather than agreement. The first one is the reason this document is
+worth having:
 
-1. **`schema_version = 1` permits exactly one service.** Not merely unexercised —
-   refused. `plugin-manifest.md:74` says `[[service]]  # exactly one, in this
-   version` and `validate.py` enforces it. The two-service shape this plugin
-   wants is a contract change, costed below, not something the manifest can
-   express today.
-2. **`provides` read the namespace off the wrong id**, and this plugin is what
-   exposed it. Found, fixed, proven — below.
-3. **Every other rule passes.** With recordings in place the draft manifest
-   conforms on every rule the stand-in can check: the recipe's flow analysis, the
-   secret, the override, all four contributions, both claims against the
-   published vocabulary, and `recipe.run` in `[requires]`.
-4. **The recordings have to come from somewhere.** They are the only thing
-   outstanding, they cannot be written at a desk, and `F10`'s promise depends on
-   somebody having made them once — below.
+1. **The contract cannot express a claim that Plex satisfies.** Not "has not
+   yet" — cannot. Three separate rules meet, and the section below sets it out.
+2. **`schema_version = 1` permits exactly one service.** Not merely unexercised,
+   refused: `plugin-manifest.md:74`, and the reader agrees. The two-service
+   shape this plugin wants is a contract change, costed below.
+3. **The recordings have to come from somewhere.** They cannot be written at a
+   desk, and `F10`'s promise depends on somebody having made them once.
+
+A fourth was found and is already gone: the interim validator derived a
+namespaced capability's prefix from `service.id` rather than `plugin.id`, so a
+plugin called `plex` declaring `plex:direct-play` on a service called
+`plex-server` was refused. It never reached the real reader, whose
+`namespaced_with(name, plugin)` takes the plugin id as an argument, and the
+interim copy was rewritten out of existence by `plugin-template#7` while this
+was being written. What survives is a test-coverage note: every fixture in
+`claiming.rs` names its service after its plugin, so nothing would catch a
+regression that passed the wrong one.
+
+---
+
+## The finding: Plex cannot make a claim
+
+`media.serve` and `identity.source` are the reason to build this plugin. Neither
+can currently be demonstrated by Plex, and the three rules that meet to prevent
+it are each individually reasonable.
+
+**One — a probe cannot carry a header.** `PluginRequest` in the published schema
+is `{method, path}` with `additionalProperties: false`. There is nowhere to put
+one.
+
+**Two — Plex answers XML unless asked for JSON.** `Accept: application/json` is
+how you ask. Rule one says a probe cannot.
+
+**Three — the capability requires a JSON assertion anyway.** `media.serve`'s
+`catalogue` probe permits its body to be constrained by `json`, `json_has_keys`,
+`json_types`, `json_at_least` or `json_array_min` and nothing else.
+`content_type` and `body_starts_with` are not in that set, so the XML escape
+hatch is closed by the capability rather than by the schema.
+
+So the catalogue probe must assert JSON about a response that cannot be JSON.
+
+**And a fourth, underneath, that would still bite if the first three were
+fixed.** The expectation vocabulary is flat. `Expected` is documented as "three
+kinds and no nesting", and the runner looks a key up with `key not in body` — a
+top-level membership test, not a path. Plex nests every response one level down
+under `MediaContainer`, so even reading JSON, no expectation could reach
+`MediaContainer.size`. Writing `"MediaContainer.size"` passes the schema and
+then looks for a key with a dot in its name, which is worse than failing.
+
+### Why this has never bitten
+
+Every recorded fixture in both published plugins is flat at the top level —
+Komga's catalogue is `{content, totalElements, …}`, Uptime Kuma's entry page is
+`{type, entryPage}` — and neither service needs content negotiation. The two
+plugins that exist are exactly the two that would not notice.
+
+That is the argument for a worked example in one sentence. A rule is only tested
+by the case that strains it, and a catalogue of plugins chosen for being easy to
+write is a catalogue that strains nothing.
+
+### What would fix it
+
+Three candidates, and they are not equivalent:
+
+- **`headers` on `PluginRequest`.** Smallest, and it is a real widening: a probe
+  that can send headers can send credentials, and `credential: "none"` on the
+  `guarded` probes means what it means only because nothing can be sent today.
+  Whatever shape this takes has to keep an anonymous probe anonymous.
+- **A path syntax in the expectation keys.** `conforming.rs` already resolves
+  JSON Pointers for schema references, so the machinery exists. This is the one
+  with the widest reach: nesting under a root object is what most APIs do.
+- **An `accept` field, narrower than headers.** Says the one thing content
+  negotiation needs and grants none of the rest. Least general, least risk.
+
+This is a decision, and it belongs to whoever owns `F4` rather than to this
+plugin. What this plugin can say is that the gap is real, that it is reachable
+from the first serious manifest anybody wrote, and that it blocks the case the
+whole extensibility arc was designed around.
 
 ---
 
@@ -193,30 +258,18 @@ place to have stopped rather than an oversight.
 
 `plex:direct-play` is the namespaced example `F4` itself uses, kept.
 
-#### The defect this found
+#### A side note this turned up
 
-Writing a two-service manifest meant naming a service something other than the
-plugin, and that refused `plex:direct-play` — `F4`'s own example of a well-formed
-namespaced capability — from a plugin called `plex`:
+Naming a service something other than its plugin also refused `plex:direct-play`
+from a plugin called `plex`, because the interim validator derived the namespace
+prefix from `service.id` while the contract gives it to the plugin (`F4-R4`,
+`F4-R16`). It never reached the real reader — `namespaced_with(name, plugin)`
+takes the plugin id as an argument — and the interim copy carrying it was
+rewritten out of existence by `plugin-template#7` before this was filed.
 
-```
-[[service]].provides: 'plex:direct-play' is neither a core name … nor namespaced
-with this plugin's id (plex-server:…)
-```
-
-The message says *this plugin's id* and prints the **service's**. `validate.py`
-derived the prefix from `service.id` in `validate_provides` and from `plugin.id`
-in the contribution half of the same file, and the contract gives the namespace
-to the plugin in both places (`F4-R4`, `F4-R16`). Both published plugins name
-their one service after themselves, so the two readings agreed and the
-disagreement cost nothing.
-
-Fixed in the shared harness, with a self-test case on each side of the edge: a
-plugin-namespaced capability on a differently-named service must be **accepted**,
-and another plugin's namespace must be **refused**. The acceptance case is the
-load-bearing one — the refusal alone passes just as well against the broken
-code. Verified red before, green after, and propagated to `plugin-template`,
-`plugin-komga` and `plugin-uptime-kuma`, whose self-tests all still pass.
+Worth one line in the Rust crate all the same: every manifest in `claiming.rs`'s
+tests names its service after its plugin, so nothing there would catch a
+regression that passed the wrong id.
 
 ### `[[claim]]` — the two core capabilities, and how Plex satisfies each probe
 
@@ -231,12 +284,12 @@ than merely large.
 | `guarded` | none | `401` or `403`, no body | `GET /library/sections`, `Accept: application/json` |
 | `catalogue` | operator | `200`, JSON with keys | `GET /library/sections`, `X-Plex-Token: …`, `Accept: application/json` |
 
-`Accept: application/json` is not decoration. Plex answers XML by default and the
-`catalogue` probe requires `json` in its body assertions, so a manifest that
-omitted the header would fail a claim the service actually satisfies. It is the
-first authoring detail in this plugin that cannot be guessed from the contract
-prose, which makes it exactly the sort of thing `F10`'s worked example exists to
-carry.
+**The header in that table is the blocker.** Plex answers XML unless asked for
+JSON, and the `catalogue` probe permits only JSON body assertions — but
+`PluginRequest` has no `headers` field, so the ask cannot be written. The table
+above describes the calls Plex needs; the contract cannot currently carry two of
+them. See *The finding* above. What follows is what the probes would demonstrate
+once it can, and is the reason closing that gap is worth the work.
 
 **The `guarded` probe has real teeth here.** Plex has a setting — *List of IP
 addresses and networks that are allowed without auth* — which, when set to the
@@ -260,8 +313,12 @@ checkbox at any time after install, and the doctor check below is what notices.
 | `identifies` | none | `200`, JSON with keys | `GET /identity` |
 | `guarded` | none | `401` or `403`, no body | `GET /accounts` |
 
-`GET /identity` returns `machineIdentifier` and `version` to an anonymous caller
-and nothing else. The vocabulary describes what it wants as *"which server this
+`GET /identity` is the one call here that needs no header at all — Plex answers
+it without a credential — so `identifies` is the single probe of the four this
+plugin could bind today, except that its assertion would have to reach
+`MediaContainer.machineIdentifier`, one level down, which the flat expectation
+vocabulary cannot do either. It returns `machineIdentifier` and `version` to an
+anonymous caller and nothing else. The vocabulary describes what it wants as *"which server this
 is — the part with nothing of the household's in it"*, and Plex has an endpoint
 that is precisely and only that. `GET /accounts` without a token is `401`.
 
@@ -436,16 +493,22 @@ ability to *honour* a part of it.
 
 | Part | Needs | Release |
 |---|---|---|
-| Manifest, service, proofs, doctor contributions | `F3`, `F4` | **0.16.0** — checked ✔ |
-| `[[claim]]` for `media.serve` and `identity.source` | the published vocabulary | **0.16.0** — checked ✔ |
-| `[[recipe]]`, `[[secret]]`, `[[override]]` **declared** | the format, which already carries them | now — checked ✔ |
+| `[plugin]`, `[[service]]`, `[wiring]`, `[requires]` | `F3` | shape accepted ✔ |
+| `[[recipe]]`, `[[secret]]`, `[[override]]` **declared** | the format already carries them | shape accepted ✔ |
+| `[[claim]]` for `media.serve` and `identity.source` | **a request that can carry a header, and an expectation that can reach one level down** | blocked |
+| `[[proof]]` and `[[contribution]]` against Plex's own responses | the same two | blocked |
 | Substitution: seerr re-points with nothing edited | `F9` converts the wiring to ask | **0.17.0** |
 | `[[recipe]]`, `[[secret]]`, `[[override]]` **honoured** | `F8` | **0.18.0** |
 | A second service | a contract change | unscheduled |
 
-"Checked ✔" means exactly what it says and no more: run against the contract
-stand-in with recordings in place, `plugin.toml` *conforms on every rule that
-stand-in can check*. It has never been run against a Plex.
+"Shape accepted ✔" means the published schema accepts those blocks as written.
+Nothing here has been run against a Plex, and the two blocked rows are blocked
+by the contract rather than by this plugin: see *The finding* above. An earlier
+draft of this table claimed the claims were checked, on the word of the interim
+validator that `plugin-template#7` replaced — it permitted `headers` on a
+request, which the published schema does not. Re-checking against the generated
+schema is what turned the finding up, and is a small argument for `F10-R2`
+having been worth closing.
 
 ### The recordings are a finding of their own
 
@@ -460,8 +523,9 @@ recording with a plausible body and an invented `recorded_from` would be the one
 kind of wrong this whole apparatus is built to catch, and it would be sitting
 inside the apparatus.
 
-So `just manifest` fails here today, eleven times, once per missing recording,
-and that is the correct state for it to be in.
+So `just manifest` fails here today: once per missing recording, and again for
+each request the contract cannot carry. Both are the correct state for it to be
+in.
 
 That ordering is the argument for specifying the whole thing now rather than the
 runnable part of it. A conformance example written one release at a time gets
@@ -473,8 +537,13 @@ test of whether `F9` and `F8` landed as specified — and the day `plugin-plex`'
 
 ## Open questions
 
-These are the five this cannot be written past. Each is a decision, not a
-research task.
+These are the six this cannot be written past. Each is a decision, not a
+research task. The first is new, and it outranks the rest.
+
+0. **How does a probe ask for JSON, and how does an expectation reach into a
+   nested body?** The finding above. It blocks both of this plugin's claims, it
+   is not specific to Plex, and it is the one question here that is worth
+   answering whether or not this plugin is ever built.
 
 1. **Does `F2`'s open-source constraint bind a plugin?** `f2-service-catalogue.md`
    excludes Plex from the *bundled* catalogue for not being open source. If that

@@ -38,3 +38,20 @@ jobs:
       contents: read
       pull-requests: write
     uses: lemonfiber/spec/.github/workflows/labeler.yml@9d1b96f05269fcf3d8b7a0b4e05d9b83082164ff # v1.0.2
+  # Two of the checks above surprise somebody meeting this organisation for the
+  # first time, which is most people who open a pull request here: `spec-check`
+  # *closes* a pull request rather than only failing it, and `dco` *skips* merge
+  # and bot commits, so it can pass with an unsigned commit in the range.
+  #
+  # This posts the explanation on the pull request — only where the contributor
+  # has not already satisfied the check, and it deletes the comment once they do
+  # (GOV-R33). The wording lives in lemonfiber/spec and is not copied here.
+  #
+  # `pull-requests: write` is what lets it post and delete the comment. A caller
+  # granting less than a reusable workflow asks for fails the whole run before
+  # any job starts, so the block is not optional.
+  explain:
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: lemonfiber/spec/.github/workflows/explain.yml@ef0414f262099080c9a6b5c8d5f528b6f74e0403 # v1.0.7

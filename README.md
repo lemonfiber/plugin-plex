@@ -12,21 +12,30 @@ credential, changes a bundled setting, and runs a first-run flow.
 
 ## What state it is in
 
-`plugin.toml` is written and has been run against the contract. With recordings
-in place it conforms on every rule the stand-in can check — the recipe's flow
-analysis, the secret, the override, all four contributed doctor checks, and both
-claims against lemonfiber's published capability vocabulary.
+`plugin.toml` is written and has been run against lemonfiber's **published
+schema**. Its shape is accepted. Its two claims are not, and that is the finding
+this repository exists for:
 
-There are no recordings. A fixture names the image digest it was taken against,
-and nobody has run this image yet, so `just manifest` fails once per missing one
-and that is the correct state for it to be in. See SPEC.md § *The recordings are
-a finding of their own*.
+- a probe's request is `{method, path}` with no `headers`, so it cannot send the
+  `Accept: application/json` that Plex needs to answer JSON at all;
+- `media.serve`'s `catalogue` probe permits only JSON body assertions, so the
+  XML escape hatch is closed by the capability as well as by the schema;
+- and the expectation vocabulary is flat, so even reading JSON nothing could
+  reach `MediaContainer.size`, one level down.
 
-Two findings came out of writing it. One is fixed
-(`lemonfiber/plugin-template#8` — a namespaced capability was checked against
-the service's id rather than the plugin's). One is open: `schema_version = 1`
-permits exactly one service, and this plugin wants two.
+Every fixture in both published plugins is flat at the top level and neither
+service needs content negotiation, which is why none of this has bitten before.
+A catalogue of plugins chosen for being easy to write strains nothing.
 
-Five open questions are listed at the end of SPEC.md. The first — whether a
-plugin may wrap a proprietary service at all — decides whether this document is
-about Plex or about Emby.
+There are also no recordings here. A fixture names the image digest it was taken
+against, nobody has run this image, and inventing one would put the single kind
+of wrong this apparatus exists to catch inside the apparatus. So `just manifest`
+is red twice over, and both are the right reason.
+
+`schema_version = 1` also permits exactly one service, and this plugin wants
+two — argued and costed in SPEC.md.
+
+Six open questions are at the end of SPEC.md. The first asks how a probe should
+ask for JSON and how an expectation should reach into a nested body; it is not
+specific to Plex and is worth answering whether or not this plugin is ever
+built.
