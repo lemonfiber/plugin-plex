@@ -3,9 +3,11 @@
 # Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md
 # Specification: SPEC.md, beside this file.
 #
-# DRAFT. The digests below are placeholders and the recipe has nothing to run it
-# until F8 lands in 0.18.0. What this file is for now is to hold SPEC.md to
-# something checkable: every rule in the manifest contract runs over it today.
+# DRAFT. The digest and tag are real and the fixtures are a real run of that
+# image; the recipe has nothing to run it until F8 lands in 0.18.0. What this
+# file is for now is to hold SPEC.md to something checkable — and it has
+# already refused two of the four probes, which is the finding rather than a
+# defect in the file. SPEC.md § The finding.
 #
 # Everything lemonfiber does on this plugin's behalf comes from this file, and it
 # knows nothing about the plugin that is not declared here (ARCH-R83). Nothing in
@@ -33,8 +35,8 @@ forms       = ["tv", "movies", "music", "full"]
 id     = "plex"
 name   = "Plex"
 image  = "docker.io/plexinc/pms-docker"
-digest = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-tag    = "1.41.9.9961"
+digest = "sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14"
+tag    = "1.43.4.10903-e5521bd8c"
 port   = 32400
 # The point of this service is the television, so: `lan`. The address is
 # lemonfiber's to assign (ARCH-R88) and so is whether it is reachable by name at

@@ -64,7 +64,10 @@ regression that passed the wrong one.
 
 ## The finding: Plex cannot make a claim
 
-Raised as [lemonfiber/spec#458](https://github.com/lemonfiber/spec/issues/458).
+Raised as [lemonfiber/spec#458](https://github.com/lemonfiber/spec/issues/458),
+and **measured** against `plexinc/pms-docker@sha256:e0ab2739…` (`1.43.4.10903`)
+rather than argued from documentation. The recordings in `fixtures/` are that
+run.
 
 `media.serve` and `identity.source` are the reason to build this plugin. Neither
 can currently be demonstrated by Plex, and the three rules that meet to prevent
@@ -74,8 +77,16 @@ it are each individually reasonable.
 is `{method, path}` with `additionalProperties: false`. There is nowhere to put
 one.
 
-**Two — Plex answers XML unless asked for JSON.** `Accept: application/json` is
-how you ask. Rule one says a probe cannot.
+**Two — Plex answers XML unless asked for JSON.** Measured, same path, same
+second:
+
+```
+GET /identity                          GET /identity  (Accept: application/json)
+Content-Type: text/xml;charset=utf-8   Content-Type: application/json
+<MediaContainer size="0" …/>           {"MediaContainer":{"size":0, …}}
+```
+
+`Accept: application/json` is how you ask. Rule one says a probe cannot.
 
 **Three — the capability requires a JSON assertion anyway.** `media.serve`'s
 `catalogue` probe permits its body to be constrained by `json`, `json_has_keys`,
@@ -89,9 +100,71 @@ So the catalogue probe must assert JSON about a response that cannot be JSON.
 fixed.** The expectation vocabulary is flat. `Expected` is documented as "three
 kinds and no nesting", and the runner looks a key up with `key not in body` — a
 top-level membership test, not a path. Plex nests every response one level down
-under `MediaContainer`, so even reading JSON, no expectation could reach
-`MediaContainer.size`. Writing `"MediaContainer.size"` passes the schema and
-then looks for a key with a dot in its name, which is worse than failing.
+under `MediaContainer`, so `json_has_keys = ["MediaContainer"]` is the only
+assertion available and it says nothing at all. Writing `"MediaContainer.size"`
+passes the schema and then looks for a key with a dot in its name, which is
+worse than failing.
+
+A path syntax would not be enough for the check this plugin most wants either.
+*Is Plex publishing itself to the internet* lives at
+
+```
+MediaContainer.Setting[] → the entry whose id == "PublishServerOnPlexOnlineKey" → .value
+```
+
+— an array, filtered by a field, then a key. All four contributed doctor checks
+drafted below are unexpressible, and for this one a predicate is needed rather
+than a path.
+
+### And a fourth, found by running it
+
+An unclaimed Plex answers **200 to everything, anonymously**:
+
+| Call | The probe requires | A fresh Plex answers |
+|---|---|---|
+| `GET /library/sections` | `401`/`403` — `media.serve` `guarded` | `200` and the catalogue |
+| `GET /accounts` | `401`/`403` — `identity.source` `guarded` | `200` and `Account:[{"name":"Administrator",…}]` |
+
+That is the default state between install and the first-run flow, and it is why
+`plex:claimed` below is not the same check as Komga's. On Komga an unclaimed
+server is an ownership risk: whoever asks first becomes administrator. Here it
+is that **and** a disclosure — the account list is already readable by anything
+on the household network.
+
+It does not invalidate the claims: `F4` runs a probe against the recording, and
+the recording would be of a claimed server. What it does mean is that the window
+`F8`'s recipe closes is a window worth closing quickly, and that `F6` should
+probably not put a service on the `lan` tier before its recipe has run.
+
+### What the runner actually says
+
+`prove.py` against the four recordings, verbatim but for the trailing detail:
+
+```
+  ok   proof  identity-before-claim         HTTP 200, and the body it declares
+  FAIL proof  catalogue-refuses-anonymous   status 200, and it declares 401
+  FAIL proof  accounts-refuses-anonymous    status 200, and it declares 401
+  FAIL probe  media.serve/guarded           status 200, and it declares 401
+  ???? probe  media.serve/catalogue         names …-operator.json, not in this source
+  ok   probe  identity.source/identifies    HTTP 200, and the body it declares
+  FAIL probe  identity.source/guarded       status 200, and it declares 401
+  ???? check  plex:claimed                  names …-claimed.json, not in this source
+  FAIL check  plex:no-anonymous-lan         status 200, and it declares 401
+  FAIL check  plex:not-published            MediaContainer is {…151 settings…}
+```
+
+Two pass. Read what they are: `identity-before-claim` and
+`identity.source/identifies` are the same call, and the only assertion the flat
+vocabulary let either of them make is `json_has_keys = ["MediaContainer"]`.
+**They pass by asserting that Plex replied.** The vocabulary asks a probe to
+show *which server this is*; what got written is *there is an envelope*. A
+green probe that establishes nothing is a worse outcome than a red one, and it
+is the outcome the flat vocabulary forces.
+
+The five `FAIL`s are honest and expected: unclaimed, Plex does not refuse
+anybody. The two `????` need a claimed server. And `plex:not-published`'s
+refusal printed all 151 settings into the message, which is a small separate
+point about a refusal nobody can read.
 
 ### Why this has never bitten
 

@@ -1,0 +1,24 @@
+{
+  "recorded_from": "plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "A fresh instance of this image, started and left alone: no claim token, no account, no library. This is what an operator's Plex answers between install and the first-run flow. media.serve's `guarded` probe asks for 401 or 403. Unclaimed, this is what comes back instead.",
+  "request": {
+    "method": "GET",
+    "path": "/library/sections",
+    "headers": {
+      "Accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "json": {
+      "MediaContainer": {
+        "size": 0,
+        "allowSync": false,
+        "title1": "Plex Library"
+      }
+    }
+  }
+}

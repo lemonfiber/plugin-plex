@@ -1,0 +1,35 @@
+{
+  "recorded_from": "plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "A fresh instance of this image, started and left alone: no claim token, no account, no library. This is what an operator's Plex answers between install and the first-run flow. identity.source's `guarded` probe asks for 401 or 403. Unclaimed, the account list is handed to an anonymous caller.",
+  "request": {
+    "method": "GET",
+    "path": "/accounts",
+    "headers": {
+      "Accept": "application/json"
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "json": {
+      "MediaContainer": {
+        "size": 1,
+        "identifier": "com.plexapp.system.accounts",
+        "Account": [
+          {
+            "id": 1,
+            "key": "/accounts/1",
+            "name": "Administrator",
+            "defaultAudioLanguage": "C.",
+            "autoSelectAudio": false,
+            "defaultSubtitleLanguage": "C.",
+            "subtitleMode": 0,
+            "thumb": ""
+          }
+        ]
+      }
+    }
+  }
+}
