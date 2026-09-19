@@ -64,6 +64,8 @@ regression that passed the wrong one.
 
 ## The finding: Plex cannot make a claim
 
+Raised as [lemonfiber/spec#458](https://github.com/lemonfiber/spec/issues/458).
+
 `media.serve` and `identity.source` are the reason to build this plugin. Neither
 can currently be demonstrated by Plex, and the three rules that meet to prevent
 it are each individually reasonable.

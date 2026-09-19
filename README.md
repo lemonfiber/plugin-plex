@@ -14,7 +14,7 @@ credential, changes a bundled setting, and runs a first-run flow.
 
 `plugin.toml` is written and has been run against lemonfiber's **published
 schema**. Its shape is accepted. Its two claims are not, and that is the finding
-this repository exists for:
+this repository exists for ([spec#458](https://github.com/lemonfiber/spec/issues/458)):
 
 - a probe's request is `{method, path}` with no `headers`, so it cannot send the
   `Accept: application/json` that Plex needs to answer JSON at all;
