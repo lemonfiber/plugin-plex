@@ -3,11 +3,13 @@
 # Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md
 # Specification: SPEC.md, beside this file.
 #
-# DRAFT. The digest and tag are real and the fixtures are a real run of that
-# image; the recipe has nothing to run it until F8 lands in 0.18.0. What this
-# file is for now is to hold SPEC.md to something checkable — and it has
-# already refused two of the four probes, which is the finding rather than a
-# defect in the file. SPEC.md § The finding.
+# The digest and tag are real and every fixture in `fixtures/` is a run of that
+# image. Two recordings are absent and named as absent: both need a server that
+# has been claimed, which needs a plex.tv account, and a plausible body under an
+# invented `recorded_from` is the one kind of wrong this whole apparatus exists
+# to catch. The verdicts against the rest are honest and three of them are red —
+# an unclaimed Plex refuses nobody, which is SPEC.md § And a fourth, found by
+# running it, and is the evidence rather than a defect in this file.
 #
 # Everything lemonfiber does on this plugin's behalf comes from this file, and it
 # knows nothing about the plugin that is not declared here (ARCH-R83). Nothing in
@@ -27,9 +29,16 @@ forms       = ["tv", "movies", "music", "full"]
 
 # The forms that serve a library. `license` is the first proprietary one any
 # plugin has declared and the honest value for this image; whether the catalogue
-# accepts one is the first of the five open questions in SPEC.md.
+# accepts one is the first of the open questions in SPEC.md.
 
 # ─── What runs ───────────────────────────────────────────────────────────────
+#
+# Two services, which is one install and one uninstall to an operator and two
+# containers on two tiers. The pair is the argument for the format permitting
+# more than one: Plex faces the television and Tautulli is an operator surface
+# with no business being reachable from the sofa, and a manifest that could
+# declare one would have to put both on `lan` or split them into two plugins the
+# operator keeps in step by hand.
 
 [[service]]
 id     = "plex"
@@ -59,67 +68,102 @@ config_path = "/config"
 # nothing bundled consumes it — which is what F4's own example says it should be.
 provides = ["media.serve", "identity.source", "plex:direct-play"]
 
+[[service]]
+id     = "plex-stats"
+name   = "Tautulli"
+image  = "ghcr.io/tautulli/tautulli"
+digest = "sha256:7feb72192d5f477f2e4e28ed6b871b57478aff693c279462577cb4dad16556de"
+tag    = "v2.18.1"
+port   = 8181
+# `loopback`, and this is the half of the pair that makes the second service
+# worth having: it reads the household's whole watch history and is an operator
+# surface. The tier decides whether it is reachable by name, so it gets no route
+# and there is no field by which it could ask for one.
+bind   = "loopback"
+# Losing this means a graph is missing. Losing Plex means nobody can watch, and
+# a format with one criticality per plugin would have had to say one of those
+# twice.
+criticality = "enhancing"
+takes_data  = false
+config_path = "/config"
+# Namespaced and inert, like `plex:direct-play`. Nothing bundled asks for watch
+# history, and F9-R3 refuses a core capability nothing bundled implements — so
+# this is what a plugin's own capability is for, and it stays inert by design
+# rather than by omission.
+provides = ["plex:watch-history"]
+
 # ─── Claims ──────────────────────────────────────────────────────────────────
 #
-# Two core capabilities and four probes between them. None of the recordings
-# exists yet: a fixture names the image digest it was taken against, and one
-# invented here would be the single kind of wrong this apparatus is built to
-# catch, sitting inside the apparatus. `just manifest` is red until somebody
-# with a Plex server records them once — SPEC.md § The recordings.
+# Two core capabilities and four probes between them, all four of them now
+# expressible. Until spec#458 was closed none of them was: a probe could not ask
+# for JSON and Plex answers XML without being asked, and an expectation could not
+# reach `MediaContainer` to say anything about the answer once it did.
 #
-# THE HEADERS BELOW ARE REFUSED BY THE PUBLISHED SCHEMA, deliberately left in.
-#
-# `PluginRequest` is {method, path} with additionalProperties: false, so a probe
-# cannot send `Accept: application/json` — and Plex answers XML without it,
-# while media.serve's `catalogue` probe permits only JSON body assertions. The
-# assertions cannot reach `MediaContainer.*` either: the expectation vocabulary
-# is flat and the runner looks a key up with `key not in body`.
-#
-# Written as Plex actually needs them rather than trimmed to what validates,
-# because a manifest edited until the gate went quiet would have hidden the one
-# finding this plugin exists to produce. SPEC.md § The finding.
+# Two of the four are red against their recordings, and that is the finding. An
+# unclaimed Plex answers 200 to everything anonymously, including /accounts, so
+# neither `guarded` probe is satisfied by the server in the state an operator's
+# machine has it in between install and the first-run flow. SPEC.md § And a
+# fourth, found by running it.
 
 [[claim]]
 capability = "media.serve"
 
 [[claim.probe]]
 id      = "guarded"
-request = { method = "GET", path = "/library/sections", headers = { Accept = "application/json" } }
+request = { method = "GET", path = "/library/sections", accept = "application/json" }
 expect  = { status = 401 }
 fixture = "fixtures/library-sections-anonymous.json"
 
+# `credential = "operator"` is what says this one is asked with the operator's
+# credential; there is no field in a request to present one, and there must not
+# be. The recording this names is absent: it is of a claimed server, claiming
+# needs a plex.tv account, and the answer is unproven rather than invented.
 [[claim.probe]]
 id      = "catalogue"
-request = { method = "GET", path = "/library/sections", headers = { Accept = "application/json", "X-Plex-Token" = "{{operator}}" } }
-expect  = { status = 200, json_has_keys = ["MediaContainer"] }
+request = { method = "GET", path = "/library/sections", accept = "application/json" }
+expect  = { status = 200, json_types = { "/MediaContainer/size" = "int", "/MediaContainer/title1" = "str" } }
 fixture = "fixtures/library-sections-operator.json"
 
 [[claim]]
 capability = "identity.source"
 
+# Which server this is, and nothing of the household's. The vocabulary asks for
+# exactly that and Plex has an endpoint that is exactly that — but the answer is
+# one level down, so before pointers the strongest thing this could say was that
+# `MediaContainer` was there, which is a probe passing because something replied.
 [[claim.probe]]
 id      = "identifies"
-request = { method = "GET", path = "/identity", headers = { Accept = "application/json" } }
-expect  = { status = 200, json_has_keys = ["MediaContainer"] }
+request = { method = "GET", path = "/identity", accept = "application/json" }
+expect  = { status = 200, json_types = { "/MediaContainer/machineIdentifier" = "str", "/MediaContainer/version" = "str" } }
 fixture = "fixtures/identity-anonymous.json"
 
 [[claim.probe]]
 id      = "guarded"
-request = { method = "GET", path = "/accounts", headers = { Accept = "application/json" } }
+request = { method = "GET", path = "/accounts", accept = "application/json" }
 expect  = { status = 401 }
 fixture = "fixtures/accounts-anonymous.json"
 
 # ─── Wiring ──────────────────────────────────────────────────────────────────
+#
+# One entry, for the one service the household reaches. Tautulli is `loopback`
+# and gets no route by the tier rule; it is named here for its dashboard group
+# so that an operator looking for it on the front door finds it under the same
+# heading, which is the half of wiring a tier does not decide.
 
-[wiring]
+[[wiring]]
+service         = "plex"
 hostname        = "plex"
+dashboard_group = "Watch"
+
+[[wiring]]
+service         = "plex-stats"
 dashboard_group = "Watch"
 
 # ─── The first-run flow ──────────────────────────────────────────────────────
 #
-# One captured value reaches two destinations, one of them a service this plugin
-# did not install. Every recipe written before this one would have made the pair
-# analysis a check over an empty set.
+# One captured value reaches three destinations, two of them services this
+# plugin did not install. Every recipe written before this one would have made
+# the pair analysis a check over an empty set.
 
 [[recipe]]
 id    = "claim-and-furnish"
@@ -161,6 +205,11 @@ id     = "tell-the-request-service"
 call   = { method = "POST", to = "seerr", path = "/api/v1/settings/plex", headers = { "X-Api-Key" = "{{plex_token}}" } }
 expect = { status = 200 }
 
+[[recipe.step]]
+id     = "tell-the-statistics-service"
+call   = { method = "POST", to = "plex-stats", path = "/api/v2?cmd=set_settings", headers = { "X-Plex-Token" = "{{plex_token}}" } }
+expect = { status = 200 }
+
 [[recipe.pair]]
 value = "claim"
 to    = "plex"
@@ -173,12 +222,16 @@ to    = "plex"
 value = "plex_token"
 to    = "seerr"
 
+[[recipe.pair]]
+value = "plex_token"
+to    = "plex-stats"
+
 # ─── What is held, and what bundled thing changes ────────────────────────────
 
 [[secret]]
 id  = "plex-token"
 of  = "plex"
-why = "The request service signs the household in through Plex"
+why = "The request service signs the household in through Plex, and the statistics service reads its sessions"
 
 [[override]]
 id  = "homepage.services.jellyfin"
@@ -189,15 +242,23 @@ why = "The front door's Watch group points at Jellyfin, and after this install i
 # what keeps the substitution reversible.
 
 # ─── Contributed to registers lemonfiber already runs ────────────────────────
+#
+# Each check names the service it is about, which it must: this plugin declares
+# two, and *the plugin's own service* stopped having a referent the moment there
+# were two of them.
 
 [[contribution]]
 at        = "doctor.check"
 id        = "plex:claimed"
 title     = "Plex has an owner, so nobody else can become one"
 category  = "services"
-request   = { method = "GET", path = "/identity", headers = { Accept = "application/json" } }
-expect    = { status = 200, json = { MediaContainer = { claimed = true } } }
-fixture   = "fixtures/identity-claimed.json"
+service   = "plex"
+request   = { method = "GET", path = "/identity", accept = "application/json" }
+expect    = { status = 200, json = { "/MediaContainer/claimed" = true } }
+# The recording of an unclaimed server, which is the state this check exists to
+# find. It is red here, and that is the check firing against the only honest
+# recording there is rather than an absent one saying nothing.
+fixture   = "fixtures/identity-anonymous.json"
 timeout_s = 10
 why       = "An unclaimed Plex server hands ownership to whoever reaches it first."
 
@@ -213,7 +274,8 @@ at        = "doctor.check"
 id        = "plex:no-anonymous-lan"
 title     = "The catalogue still refuses a caller presenting nothing"
 category  = "credentials"
-request   = { method = "GET", path = "/library/sections", headers = { Accept = "application/json" } }
+service   = "plex"
+request   = { method = "GET", path = "/library/sections", accept = "application/json" }
 expect    = { status = 401 }
 fixture   = "fixtures/library-sections-anonymous.json"
 timeout_s = 10
@@ -226,13 +288,18 @@ for    = "plex:no-anonymous-lan"
 action = "In Plex, clear the list of networks allowed without authentication"
 why    = "A library readable without a credential is the household's collection published to every device on the network."
 
+# The check the whole contract change was for. `PublishServerOnPlexOnlineKey` is
+# one of a hundred and fifty-one settings in a flat array, found by the `id` it
+# carries — an array, a predicate and then a key, which no path syntax alone
+# reaches and which nothing in the flat vocabulary could say a word about.
 [[contribution]]
 at        = "doctor.check"
 id        = "plex:not-published"
 title     = "Plex is not publishing itself to the internet on its own"
 category  = "network"
-request   = { method = "GET", path = "/:/prefs", headers = { Accept = "application/json" } }
-expect    = { status = 200, json = { MediaContainer = { publishServerOnPlexOnlineKey = false } } }
+service   = "plex"
+request   = { method = "GET", path = "/:/prefs", accept = "application/json" }
+expect    = { status = 200, json = { "/MediaContainer/Setting/[id=PublishServerOnPlexOnlineKey]/value" = false } }
 fixture   = "fixtures/prefs-not-published.json"
 timeout_s = 10
 why       = "Plex can open its own way in through plex.tv's relay, which is a second door lemonfiber did not open and does not watch."
@@ -244,14 +311,23 @@ for    = "plex:not-published"
 action = "In Plex, turn off Remote Access"
 why    = "Reaching the library from away is lemonfiber's to arrange, so that there is one door and one place it is described."
 
+# Two selectors in one place: the movie library, then the location inside it. The
+# order of neither array is a promise Plex makes, which is why a selector picks
+# by a field rather than by position.
+#
+# `~1` is RFC 6901's escape for a slash, so `[path=~1data~1media~1movies]` picks
+# the location whose `path` is `/data/media/movies`. Unescaped it would be four
+# steps rather than one, which the reader refuses by name rather than resolving
+# somewhere nobody meant.
 [[contribution]]
 at        = "doctor.check"
 id        = "plex:libraries-match"
-title     = "Every Plex library points where the stack files that media type"
+title     = "Plex's film library points where the stack files films"
 category  = "storage"
-request   = { method = "GET", path = "/library/sections", headers = { Accept = "application/json" } }
-expect    = { status = 200, json_at_least = { "MediaContainer.size" = 1 } }
-fixture   = "fixtures/library-sections-operator.json"
+service   = "plex"
+request   = { method = "GET", path = "/library/sections", accept = "application/json" }
+expect    = { status = 200, json_has_keys = ["/MediaContainer/Directory/[type=movie]/Location/[path=~1data~1media~1movies]/path"] }
+fixture   = "fixtures/library-sections-configured.json"
 timeout_s = 10
 why       = "A Plex library scanning the wrong directory files nothing, throws nothing, and shows an empty shelf for a media type the stack is still acquiring into."
 
@@ -259,7 +335,7 @@ why       = "A Plex library scanning the wrong directory files nothing, throws n
 at     = "doctor.remedy"
 id     = "plex:repoint-libraries"
 for    = "plex:libraries-match"
-action = "Point each Plex library at the matching directory under the stack's data root"
+action = "Point Plex's film library at /data/media/movies, under the stack's data root"
 why    = "Otherwise the acquisition half keeps working and the watching half stays empty, with nothing anywhere saying why."
 
 # ─── What this needs of lemonfiber ───────────────────────────────────────────
@@ -267,6 +343,11 @@ why    = "Otherwise the acquisition half keeps working and the watching half sta
 # `recipe.run` is what makes a build that cannot run the flow above refuse this
 # manifest by naming that capability, rather than parsing the block and skipping
 # it — which would install a Plex nobody claimed and nothing was told about.
+#
+# None of these four is offered by any build yet, so `lemonfiber plugin claims`
+# refuses this manifest by naming them. That is F6-R10 doing its job, it is the
+# same answer the three published plugins get, and the answer is not to stop
+# declaring what this plugin needs.
 
 [requires]
 capabilities = [
@@ -277,27 +358,37 @@ capabilities = [
 ]
 
 # ─── Proofs ──────────────────────────────────────────────────────────────────
+#
+# Each names the service it asks, because this plugin declares two and a proof
+# gates the install of both.
 
 [[proof]]
 id      = "identity-before-claim"
 title   = "It says which server it is before anybody has claimed it"
+service = "plex"
 fixture = "fixtures/identity-anonymous.json"
 why     = "Something has to be answerable before authentication or nothing could ever authenticate, and this is the part with nothing of the household's in it."
-request = { method = "GET", path = "/identity", headers = { Accept = "application/json" } }
-expect  = { status = 200, json_has_keys = ["MediaContainer"] }
+request = { method = "GET", path = "/identity", accept = "application/json" }
+expect  = { status = 200, json_types = { "/MediaContainer/machineIdentifier" = "str", "/MediaContainer/version" = "str" } }
 
+# A status alone, and only because it is a refusal: a 401 is the one answer no
+# port proxy can produce. An earlier draft of this file asserted the body of that
+# refusal as well, and nobody has ever recorded one — an unclaimed Plex answers
+# 200 here — so the assertion described a body this repository had invented.
 [[proof]]
 id      = "catalogue-refuses-anonymous"
 title   = "The catalogue refuses a caller presenting nothing"
+service = "plex"
 fixture = "fixtures/library-sections-anonymous.json"
-why     = "A proof reading only a status here would pass against a build with no library at all; this asserts the body Plex actually returns."
-request = { method = "GET", path = "/library/sections", headers = { Accept = "application/json" } }
-expect  = { status = 401, json_has_keys = ["errors"] }
+why     = "A library server that answers this to the network has published the household's collection to every device on it, and nothing else would notice."
+request = { method = "GET", path = "/library/sections", accept = "application/json" }
+expect  = { status = 401 }
 
 [[proof]]
 id      = "accounts-refuses-anonymous"
 title   = "It says nothing about who has an account here"
+service = "plex"
 fixture = "fixtures/accounts-anonymous.json"
 why     = "The line between this and the identity proof is the whole of identity.source: which server, to anybody; who is on it, to nobody."
-request = { method = "GET", path = "/accounts", headers = { Accept = "application/json" } }
-expect  = { status = 401, json_has_keys = ["errors"] }
+request = { method = "GET", path = "/accounts", accept = "application/json" }
+expect  = { status = 401 }

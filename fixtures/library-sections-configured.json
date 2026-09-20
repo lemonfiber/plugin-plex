@@ -1,0 +1,50 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "The same image, with one movie library created through its own API and pointed at /data/media/movies \u2014 the directory the bundled stack files films into. Nothing else is configured: no claim, no account, no media. This is what the contributed check plex:libraries-match reads, and it is the answer where the substitution has worked. The Location array is why an expectation needs to pick an entry by a field rather than by position: the key, uuid and id here are whatever Plex assigned on this run.",
+  "request": {
+    "method": "GET",
+    "path": "/library/sections",
+    "accept": "application/json"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "json": {
+      "MediaContainer": {
+        "size": 1,
+        "allowSync": false,
+        "title1": "Plex Library",
+        "Directory": [
+          {
+            "allowSync": false,
+            "filters": true,
+            "refreshing": false,
+            "key": "2",
+            "type": "movie",
+            "title": "Movies",
+            "agent": "tv.plex.agents.movie",
+            "scanner": "Plex Movie",
+            "language": "en-US",
+            "metadataAgentProviderGroupId": 1,
+            "uuid": "923af14c-4341-4627-81eb-4e23f6bec815",
+            "updatedAt": 1789862511,
+            "createdAt": 1789862511,
+            "scannedAt": 1789862511,
+            "content": true,
+            "directory": true,
+            "contentChangedAt": -1,
+            "hidden": 0,
+            "Location": [
+              {
+                "id": 2,
+                "path": "/data/media/movies"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

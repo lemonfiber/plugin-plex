@@ -1,0 +1,72 @@
+{
+  "lemonfiber": "0.16.0",
+  "against": "recordings",
+  "proofs": [
+    {
+      "id": "media.serve/guarded",
+      "kind": "probe",
+      "outcome": "failed",
+      "detail": "answered 200 where it declares 401"
+    },
+    {
+      "id": "media.serve/catalogue",
+      "kind": "probe",
+      "outcome": "unproven",
+      "detail": "fixtures/library-sections-operator.json could not be read: No such file or directory (os error 2)"
+    },
+    {
+      "id": "identity.source/identifies",
+      "kind": "probe",
+      "outcome": "passed",
+      "detail": "the recording answers what it declares"
+    },
+    {
+      "id": "identity.source/guarded",
+      "kind": "probe",
+      "outcome": "failed",
+      "detail": "answered 200 where it declares 401"
+    },
+    {
+      "id": "identity-before-claim",
+      "kind": "proof",
+      "outcome": "passed",
+      "detail": "the recording answers what it declares"
+    },
+    {
+      "id": "catalogue-refuses-anonymous",
+      "kind": "proof",
+      "outcome": "failed",
+      "detail": "answered 200 where it declares 401"
+    },
+    {
+      "id": "accounts-refuses-anonymous",
+      "kind": "proof",
+      "outcome": "failed",
+      "detail": "answered 200 where it declares 401"
+    },
+    {
+      "id": "plex:claimed",
+      "kind": "check",
+      "outcome": "failed",
+      "detail": "/MediaContainer/claimed is false, and it declares true"
+    },
+    {
+      "id": "plex:no-anonymous-lan",
+      "kind": "check",
+      "outcome": "failed",
+      "detail": "answered 200 where it declares 401"
+    },
+    {
+      "id": "plex:not-published",
+      "kind": "check",
+      "outcome": "passed",
+      "detail": "the recording answers what it declares"
+    },
+    {
+      "id": "plex:libraries-match",
+      "kind": "check",
+      "outcome": "passed",
+      "detail": "the recording answers what it declares"
+    }
+  ]
+}

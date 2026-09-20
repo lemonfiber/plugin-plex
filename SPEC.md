@@ -1,6 +1,9 @@
 # Plex, as a lemonfiber plugin
 
-**Status:** Draft — specification only. Nothing here is built.
+**Status:** Draft. The contract gap this document found is closed —
+[lemonfiber/spec#458](https://github.com/lemonfiber/spec/issues/458) — and the
+manifest beside this file now says what it means to say. Nothing is installed
+yet; `F9` and `F8` are what honour it.
 
 The plugin the extensibility features were written for. `F3` names it as "the hard
 case this must survive"; `F4` uses it twice to explain why capabilities exist at
@@ -33,7 +36,7 @@ measured against.
 | `[[override]]` | ✘ | ✘ | ✔ |
 | A call to a host outside the stack | ✘ | ✘ | ✔ `plex.tv` |
 | Standing in for a bundled service (`F9`) | ✘ | ✘ | ✔ |
-| More than one `[[service]]` | ✘ | ✘ | **refused by the schema — see below** |
+| More than one `[[service]]` | ✘ | ✘ | ✔ Plex on `lan`, Tautulli on `loopback` |
 
 ### What writing it found
 
@@ -42,13 +45,17 @@ published schema and the contract second, which is the order that produces
 findings rather than agreement. The first one is the reason this document is
 worth having:
 
-1. **The contract cannot express a claim that Plex satisfies.** Not "has not
-   yet" — cannot. Three separate rules meet, and the section below sets it out.
-2. **`schema_version = 1` permits exactly one service.** Not merely unexercised,
-   refused: `plugin-manifest.md:74`, and the reader agrees. The two-service
-   shape this plugin wants is a contract change, costed below.
+1. **The contract could not express a claim that Plex satisfies.** Not "had not
+   yet" — could not. Three separate rules met, and the section below sets it
+   out. It is the finding this document exists for, it was filed as
+   [spec#458](https://github.com/lemonfiber/spec/issues/458), and it is closed.
+2. **`schema_version = 1` permitted exactly one service.** Not merely
+   unexercised, refused. That limit is lifted, and the two questions it was
+   said to cost are answered in the contract rather than deferred.
 3. **The recordings have to come from somewhere.** They cannot be written at a
-   desk, and `F10`'s promise depends on somebody having made them once.
+   desk, and `F10`'s promise depends on somebody having made them once. Five of
+   the six this plugin wants are now recorded; the two that need a claimed
+   server are absent and named as absent.
 
 A fourth was found and is already gone: the interim validator derived a
 namespaced capability's prefix from `service.id` rather than `plugin.id`, so a
@@ -62,12 +69,16 @@ regression that passed the wrong one.
 
 ---
 
-## The finding: Plex cannot make a claim
+## The finding: Plex could not make a claim
 
 Raised as [lemonfiber/spec#458](https://github.com/lemonfiber/spec/issues/458),
 and **measured** against `plexinc/pms-docker@sha256:e0ab2739…` (`1.43.4.10903`)
 rather than argued from documentation. The recordings in `fixtures/` are that
 run.
+
+**Closed.** What follows is the finding as it was found, because the argument
+for the change is the case that produced it; what was done about it is in
+*What fixed it*, below.
 
 `media.serve` and `identity.source` are the reason to build this plugin. Neither
 can currently be demonstrated by Plex, and the three rules that meet to prevent
@@ -177,24 +188,34 @@ That is the argument for a worked example in one sentence. A rule is only tested
 by the case that strains it, and a catalogue of plugins chosen for being easy to
 write is a catalogue that strains nothing.
 
-### What would fix it
+### What fixed it
 
-Three candidates, and they are not equivalent:
+Two changes rather than one, because the gap is two gaps. A probe that could ask
+for JSON would still have had nothing to say about `MediaContainer`, and an
+expectation that could reach inside one would still have been reading XML.
 
-- **`headers` on `PluginRequest`.** Smallest, and it is a real widening: a probe
-  that can send headers can send credentials, and `credential: "none"` on the
-  `guarded` probes means what it means only because nothing can be sent today.
-  Whatever shape this takes has to keep an anonymous probe anonymous.
-- **A path syntax in the expectation keys.** `conforming.rs` already resolves
-  JSON Pointers for schema references, so the machinery exists. This is the one
-  with the widest reach: nesting under a root object is what most APIs do.
-- **An `accept` field, narrower than headers.** Says the one thing content
-  negotiation needs and grants none of the rest. Least general, least risk.
+**`accept` on a request, and not a `headers` map.** The header map was the
+smallest change and it is the one that could not be made safe. A probe declares
+who it is asked as, and `credential = "none"` on every `guarded` probe has meant
+what it says partly because a manifest could present nothing. Keeping that true
+under a header map needs a list of header names a probe may not send, and no
+such list is ever closed: `X-Plex-Token` is in no registry, and the next service
+will invent its own. One named field makes it a property of the format instead —
+a probe still cannot present a credential, because there is nowhere to write
+one.
 
-This is a decision, and it belongs to whoever owns `F4` rather than to this
-plugin. What this plugin can say is that the gap is real, that it is reachable
-from the first serious manifest anybody wrote, and that it blocks the case the
-whole extensibility arc was designed around.
+**An expectation's key becomes a place**: RFC 6901, plus one step that picks the
+entry of a list whose field holds a value. A key that does not begin with `/` is
+still the name of a top-level member, so nothing already written changed
+meaning. The predicate is what `plex:not-published` needs and what no path
+syntax alone reaches; an index would have been the trap it exists to avoid,
+because the order of Plex's hundred and fifty-one settings is not a promise
+anybody made.
+
+Neither of the two probe body-constraint sets in the capability vocabulary
+changed, and that is worth noticing: `media.serve`'s `catalogue` probe requires
+a JSON assertion, and once a claimant can ask for JSON it can make one. The
+third of the three rules was never the obstacle on its own.
 
 ---
 
@@ -301,11 +322,9 @@ provides    = ["media.serve", "identity.source", "plex:direct-play"]
 # provides    = ["plex:watch-history"]
 ```
 
-**The second block is commented out in the draft manifest, because the schema
-refuses it.** `schema_version = 1` permits exactly one service, deliberately —
-`plugin-manifest.md:74`, enforced at `validate.py:1004`. So this is a proposal
-against the contract rather than a declaration, and it is the clearest thing the
-exercise turned up: the showcase cannot show the shape it most wants to.
+**Both blocks are declared.** `schema_version = 1` permitted exactly one
+service and no longer does. What follows is what the second demonstrates, which
+is why the limit was worth lifting rather than working around.
 
 What a second service would demonstrate, and nothing else can:
 
@@ -323,13 +342,24 @@ What a second service would demonstrate, and nothing else can:
   outside the service the plugin installed. That is the case `[[recipe.pair]]`
   exists for, at full strength.
 
-**What it would cost.** Service ids are already required unique across the stack
-and every installed plugin, so nothing about identity changes. What does change
-is that `[wiring]`'s single `hostname` and single `dashboard_group` stop being
-answerable for a plugin, and `F4-R8`'s collision rule has to say whether two
-services of one plugin claiming one capability is a collision. Those are the two
-real questions, and they are why "exactly one, in this version" is a defensible
-place to have stopped rather than an oversight.
+**What it cost, and what the answers are.** Service ids were already required
+unique across the stack and every installed plugin; what was missing was
+uniqueness *within* a manifest, which nothing could break while there was one of
+them and which every later rule that reaches for a service by name depends on.
+The two real questions are answered in the contract:
+
+- **`[wiring]` becomes `[[wiring]]`**, one entry per service at most, naming its
+  service where the plugin declares more than one. A hostname is a fact about a
+  container rather than about a plugin, and a default taken from the plugin's id
+  would have given two services one address. The tier still governs: Tautulli is
+  `loopback`, so it gets no route and there is no field by which it could ask
+  for one — it is named here only for its dashboard group.
+- **Two services of one plugin claiming one core capability never reaches
+  `F4-R8`.** That rule is about two *installed candidates* an operator chose
+  between, and a plugin is one thing they installed — so there is nothing for
+  them to resolve. It is two answers to one question and it is refused when the
+  manifest is read, naming the capability and both services. A plugin's own
+  namespaced capability is not held to it, because nothing asks for one.
 
 `plex:direct-play` is the namespaced example `F4` itself uses, kept.
 
@@ -568,22 +598,40 @@ ability to *honour* a part of it.
 
 | Part | Needs | Release |
 |---|---|---|
-| `[plugin]`, `[[service]]`, `[wiring]`, `[requires]` | `F3` | shape accepted ✔ |
+| `[plugin]`, `[[service]]`, `[[wiring]]`, `[requires]` | `F3` | shape accepted ✔ |
 | `[[recipe]]`, `[[secret]]`, `[[override]]` **declared** | the format already carries them | shape accepted ✔ |
-| `[[claim]]` for `media.serve` and `identity.source` | **a request that can carry a header, and an expectation that can reach one level down** | blocked |
-| `[[proof]]` and `[[contribution]]` against Plex's own responses | the same two | blocked |
+| A second service | the contract change above | shape accepted ✔ |
+| `[[claim]]` for `media.serve` and `identity.source` | a request that can ask for JSON, and an expectation that can reach into one | **declared, and two of four red — see below** |
+| `[[proof]]` and `[[contribution]]` against Plex's own responses | the same two | **declared, and running** |
 | Substitution: seerr re-points with nothing edited | `F9` converts the wiring to ask | **0.17.0** |
 | `[[recipe]]`, `[[secret]]`, `[[override]]` **honoured** | `F8` | **0.18.0** |
-| A second service | a contract change | unscheduled |
+| Anything at all installed | `[requires]` naming capabilities no build offers | see below |
 
 "Shape accepted ✔" means the published schema accepts those blocks as written.
-Nothing here has been run against a Plex, and the two blocked rows are blocked
-by the contract rather than by this plugin: see *The finding* above. An earlier
-draft of this table claimed the claims were checked, on the word of the interim
-validator that `plugin-template#7` replaced — it permitted `headers` on a
-request, which the published schema does not. Re-checking against the generated
-schema is what turned the finding up, and is a small argument for `F10-R2`
-having been worth closing.
+
+**What is red, and why each one is.** Two of the four probes are refuted by
+their own recordings: an unclaimed Plex answers `200` to `/library/sections` and
+to `/accounts`, so neither `guarded` probe is satisfied by the server in the
+state an operator's machine has it in between install and the first-run flow.
+That is the state `F8`'s recipe closes and it is the evidence, not a defect in
+this file. `media.serve`'s `catalogue` probe is unproven: its recording is of a
+claimed server, claiming needs a plex.tv account, and an invented one would be
+the single kind of wrong this apparatus exists to catch.
+
+**And the whole manifest is refused, for a reason that is not this plugin's.**
+`[requires]` names `service.add`, `service.health.http` and `recipe.run`, and
+`offering::offered()` offers none of them — this build generates no service
+definition, gates no plugin service's health and runs no recipe. So
+`lemonfiber plugin claims` refuses this manifest by naming those three, which is
+`F6-R10` working exactly as written. The three published plugins get the same
+answer for the same reason. The answer is not for this plugin to stop declaring
+what it needs.
+
+An earlier draft of this table claimed the claims were checked, on the word of
+the interim validator that `plugin-template#7` replaced — it permitted `headers`
+on a request, which the published schema did not. Re-checking against the
+generated schema is what turned the finding up, and is a small argument for
+`F10-R2` having been worth closing.
 
 ### The recordings are a finding of their own
 
@@ -615,10 +663,11 @@ test of whether `F9` and `F8` landed as specified — and the day `plugin-plex`'
 These are the six this cannot be written past. Each is a decision, not a
 research task. The first is new, and it outranks the rest.
 
-0. **How does a probe ask for JSON, and how does an expectation reach into a
-   nested body?** The finding above. It blocks both of this plugin's claims, it
-   is not specific to Plex, and it is the one question here that is worth
-   answering whether or not this plugin is ever built.
+0. **Answered.** A probe asks for JSON with `accept`, which is one media type
+   and not a header map, so an anonymous probe stays anonymous by construction.
+   An expectation reaches into a nested body with a JSON Pointer, extended by
+   one step that picks the entry of a list whose field holds a value. See *What
+   fixed it* above; the argument and the cost are in the contract.
 
 1. **Does `F2`'s open-source constraint bind a plugin?** `f2-service-catalogue.md`
    excludes Plex from the *bundled* catalogue for not being open source. If that
@@ -640,16 +689,19 @@ research task. The first is new, and it outranks the rest.
    exercises the external-destination rule properly, and costs a dependency on an
    external service inside a first-run flow.
 
-4. **Does the second service earn a contract change?** The argument is above and
-   the two open questions it raises — what `[wiring]`'s single `hostname` means
-   for a plugin with two services, and whether two services of one plugin
-   claiming one capability trips `F4-R8` — are the work. Answering *no* is
-   respectable: it costs this plugin Tautulli and costs the pair analysis its
-   third destination, and everything else in this document stands.
+4. **Answered: yes.** The limit is lifted, the two questions it raised are
+   settled in the contract — `[[wiring]]` is per service and names it, and two
+   services of one plugin claiming one core capability is refused when the
+   manifest is read rather than contested on an operator's machine — and
+   Tautulli is declared. The pair analysis has its third destination.
 
-5. **Who records the first fixtures?** Someone with a Plex server, once. Until
-   then this repository is a specification with a manifest beside it, and
-   `just ci` is red for the right reason.
+5. **Partly answered.** Five recordings are here, all from
+   `plexinc/pms-docker@sha256:e0ab2739…`, including one of a Plex with a film
+   library pointed at the directory the stack files films into. Two are absent
+   and stay absent until somebody with a plex.tv account records them:
+   `media.serve`'s `catalogue` needs a server whose catalogue is read with the
+   operator's credential, and it cannot be read with one until the server is
+   claimed.
 
 ---
 

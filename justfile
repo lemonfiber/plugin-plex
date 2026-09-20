@@ -63,7 +63,7 @@ manifest:
 #
 # Everything the manifest declares, and the report CI diffs.
 proofs:
-    python3 .github/interim/prove.py --against fixtures --report proofs.json
+    python3 .github/interim/prove.py --report proofs.json
     git diff --exit-code -- proofs.json
 
 # The declared digest is in the registry, the tag beside it still names it, and

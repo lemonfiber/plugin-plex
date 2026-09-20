@@ -1,12 +1,10 @@
 {
-  "recorded_from": "plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
   "note": "A fresh instance of this image, started and left alone: no claim token, no account, no library. This is what an operator's Plex answers between install and the first-run flow. Public server information. The one call here that needs no credential by design.",
   "request": {
     "method": "GET",
     "path": "/identity",
-    "headers": {
-      "Accept": "application/json"
-    }
+    "accept": "application/json"
   },
   "response": {
     "status": 200,
