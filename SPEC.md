@@ -33,7 +33,7 @@ measured against.
 | `[[override]]` | ✘ | ✘ | ✔ |
 | A call to a host outside the stack | ✘ | ✘ | ✔ `plex.tv` |
 | Standing in for a bundled service (`F9`) | ✘ | ✘ | ✔ |
-| More than one `[[service]]` | ✘ | ✘ | **refused by the schema — see below** |
+| More than one `[[service]]` | ✘ | ✘ | ✔ `plex` + `plex-stats`, two tiers, two criticalities |
 
 ### What writing it found
 
@@ -44,9 +44,12 @@ worth having:
 
 1. **The contract cannot express a claim that Plex satisfies.** Not "has not
    yet" — cannot. Three separate rules meet, and the section below sets it out.
-2. **`schema_version = 1` permits exactly one service.** Not merely unexercised,
-   refused: `plugin-manifest.md:74`, and the reader agrees. The two-service
-   shape this plugin wants is a contract change, costed below.
+2. **A rule this repository invented and then proved.** The interim validator
+   held a manifest to exactly one `[[service]]`, and three passages here
+   repeated it as the format. The contract has always taken more than one, and
+   names *Plex and the reader of its watch history* as the reason it does. The
+   second service is declared now, and the section below is what the mistake
+   cost and how it lasted.
 3. **The recordings have to come from somewhere.** They cannot be written at a
    desk, and `F10`'s promise depends on somebody having made them once.
 
@@ -272,15 +275,15 @@ forms       = ["tv", "movies", "music", "full"]
 `license = "Proprietary"` is the first one, and it is the honest value. **Open
 question 1**, below.
 
-### `[[service]]` — one, and the argument for a second
+### `[[service]]` — the thing, and the thing beside it
 
 ```toml
 [[service]]
 id          = "plex"
 name        = "Plex"
 image       = "docker.io/plexinc/pms-docker"
-digest      = "sha256:…"
-tag         = "1.41.9.9961"
+digest      = "sha256:e0ab2739…"
+tag         = "1.43.4.10903-e5521bd8c"
 port        = 32400
 bind        = "lan"
 health      = { kind = "http", path = "/identity", timeout_s = 90 }
@@ -290,46 +293,97 @@ media_types = ["movies", "tv", "music"]
 config_path = "/config"
 provides    = ["media.serve", "identity.source", "plex:direct-play"]
 
-# Proposed, and refused by schema_version 1 — see below.
-# [[service]]
-# id          = "plex-stats"
-# name        = "Tautulli"
-# image       = "ghcr.io/tautulli/tautulli"
-# port        = 8181
-# bind        = "loopback"
-# criticality = "enhancing"
-# provides    = ["plex:watch-history"]
+[[service]]
+id          = "plex-stats"
+name        = "Tautulli"
+image       = "ghcr.io/tautulli/tautulli"
+digest      = "sha256:40dd6d…"
+tag         = "v2.9.7"
+port        = 8181
+bind        = "loopback"
+criticality = "enhancing"
+takes_data  = false
+config_path = "/config"
+provides    = ["plex:watch-history"]
 ```
 
-**The second block is commented out in the draft manifest, because the schema
-refuses it.** `schema_version = 1` permits exactly one service, deliberately —
-`plugin-manifest.md:74`, enforced at `validate.py:1004`. So this is a proposal
-against the contract rather than a declaration, and it is the clearest thing the
-exercise turned up: the showcase cannot show the shape it most wants to.
+**Both blocks are declared, and this is where the second finding is.** The draft
+carried the Tautulli block commented out, and this document said three times that
+the format refused it. It does not, and never has. `Manifest.services` is a
+`Vec<Service>` whose docblock gives the reason in the plugin's own terms:
 
-What a second service would demonstrate, and nothing else can:
+> More than one because a plugin is often a thing and the thing beside it: Plex
+> and the reader of its watch history are one install and one uninstall to an
+> operator, and are two containers on two tiers with two criticalities. A format
+> permitting one forces the author of the pair to choose the wider tier for both
+> halves, or to publish two plugins an operator has to keep in step by hand.
+
+That is this pair, named in the reader as the case the shape exists for.
+`refusing.rs` refuses *none* and refuses two sharing an id; it has a test called
+`a_plugin_may_declare_a_second_service_beside_the_first` asserting no violations.
+The published schema's `service` is an unbounded array. The contract's own block
+list reads `[[service]] # what runs — one or more`.
+
+What refused it was this repository's interim validator, which held a manifest to
+`len(services) == 1` and had a proof case asserting that it did. So the rule was
+not merely written down wrong — it was *demonstrated*, which is what made it
+credible enough to repeat into two documents and a commented-out manifest block.
+It is the same defect as the fourth finding above, in the same file, found the
+same way, and it is the argument for `F10-R2` in one sentence: a hand-maintained
+description standing beside a generated one will drift, and a proof behind the
+drifted copy makes the drift look like the contract.
+
+Fixed here. The stand-in now refuses what the reader refuses — no service at all,
+two services under one id, and two services of one plugin answering the same
+*core* capability (`F4-R8`, and `claiming.rs` words it the same way) — and the
+three cases proving those replace the one that proved the invention.
+
+What the second service now demonstrates, and nothing else in the catalogue can:
 
 - **Two `bind` tiers in one manifest.** Plex is `lan` because the point of it is
-  the television. Tautulli would be `loopback` because it is an operator surface
-  with no business being reachable from the sofa. A plugin that can only declare
-  one tier gives the author no way to be narrow about half of itself, which
-  pushes toward the wider tier for the whole.
+  the television. Tautulli is `loopback` because it is an operator surface with
+  no business being reachable from the sofa. A plugin that could only declare one
+  tier would give the author no way to be narrow about half of itself, which
+  pushes the wider tier onto the whole.
 - **Two criticalities.** Losing Plex means nobody can watch; losing Tautulli
   means a graph is missing. `critical` is not available to a plugin at all
   (`plugin-manifest.md` § *A plugin may not declare itself `critical`*), so
-  `important` is this one's correct ceiling.
-- **A pair analysis with two in-stack destinations.** With Tautulli present, the
-  captured token reaches `plex`, `seerr` **and** `plex-stats` — two of the three
-  outside the service the plugin installed. That is the case `[[recipe.pair]]`
-  exists for, at full strength.
+  `important` is Plex's correct ceiling and `enhancing` is Tautulli's.
+- **Two `[[wiring]]` blocks, each naming its service.** `service` is optional for
+  a plugin declaring one and required past that, because a hostname is a fact
+  about one container. Tautulli's carries a `dashboard_group` and no `hostname`:
+  a `loopback` service gets no proxy stanza, and does get a dashboard entry with
+  its href rendered from the tier.
+- **`takes_data` earning its place.** Plex needs the data root; Tautulli reads
+  Plex's API and keeps its own history, and never opens the library. One field,
+  two answers, in one manifest.
 
-**What it would cost.** Service ids are already required unique across the stack
-and every installed plugin, so nothing about identity changes. What does change
-is that `[wiring]`'s single `hostname` and single `dashboard_group` stop being
-answerable for a plugin, and `F4-R8`'s collision rule has to say whether two
-services of one plugin claiming one capability is a collision. Those are the two
-real questions, and they are why "exactly one, in this version" is a defensible
-place to have stopped rather than an oversight.
+**What it cost.** Nothing, in the end — both questions this document called open
+were already answered in the contract. `[[wiring]]` is an array and each entry
+names its service, which is the hostname question. `F4-R8`'s collision rule is
+written and enforced: `claiming.rs` refuses two services of one plugin declaring
+the same core name, because *something asks for one of these by name and exactly
+one service answers*. A namespaced name collides with nothing, which is why
+`plex:watch-history` beside `plex:direct-play` is legal and inert.
+
+**What it turned up on the way.** The draft's wiring block was `[wiring]`, a
+table, where the published schema wants an array of tables — a real defect, and
+the manifest's fourteenth schema violation against a documented thirteen. It
+survived because nobody had reason to look at wiring while the document said the
+multi-service shape was impossible, and because the offline self-test skips the
+schema arm entirely: only `published_gate.py`, which needs the forge, would have
+caught it. A false claim does not just mislead; it decides where nobody looks.
+
+The digest above is real, resolved from the registry the same way Plex's was, and
+`image_gate.py` now checks every declared service rather than the first — a gate
+reading only `service[0]` would have left the second digest, which is the whole
+of what fixes what runs, checked by nothing.
+
+Still open: the third pair destination. With Tautulli installed the captured
+token *could* reach `plex`, `seerr` and `plex-stats`, which is the pair analysis
+at full strength. It does not yet, because the recipe step that would carry it
+there is a call to Tautulli nobody here has made, and writing one from the
+documentation would be the same invention as writing a digest nobody resolved.
 
 `plex:direct-play` is the namespaced example `F4` itself uses, kept.
 
@@ -401,13 +455,26 @@ that is precisely and only that. `GET /accounts` without a token is `401`.
 makes it the single most valuable place in the stack for substitution to be
 demonstrated and the single most fragile place for it to be left unproven.
 
-### `[wiring]`
+### `[[wiring]]` — one each, at most, and each one says which
 
 ```toml
-[wiring]
+[[wiring]]
+service         = "plex"
 hostname        = "plex"
 dashboard_group = "Watch"
+
+[[wiring]]
+service         = "plex-stats"
+dashboard_group = "Watch"
 ```
+
+An array of tables, not a table: the draft had `[wiring]` and the published
+schema wants `[[wiring]]`, which is one of the two defects the second finding
+above turned up. `service` is optional for a plugin declaring one service and
+required past that. Tautulli's entry carries no `hostname` because a `loopback`
+service gets no proxy stanza — there is no label to put in front of the
+operator's domain — and it does get a dashboard entry, with its href rendered
+from the tier it is on.
 
 ### `[[recipe]]` — one capture, three pairs
 
@@ -474,8 +541,9 @@ would make that analysis a check over an empty set. Here one captured value
 reaches two destinations, one of them a service this plugin did not install —
 which is the case the analysis exists for, and the case where a missing pair
 would be an operator's credential arriving somewhere they never agreed to. With
-Tautulli it would be three destinations and two such services, which is the
-argument for the contract change put at its narrowest.
+a recipe step that reached Tautulli it would be three destinations and two such
+services — the analysis at full strength, and the one thing the second service
+does not yet buy, because nobody here has made that call.
 
 The claim code is captured with `origin = "operator"`. It is the only one of the
 four permitted origins that means *the person typed this*, and the four-minute
@@ -568,13 +636,13 @@ ability to *honour* a part of it.
 
 | Part | Needs | Release |
 |---|---|---|
-| `[plugin]`, `[[service]]`, `[wiring]`, `[requires]` | `F3` | shape accepted ✔ |
+| `[plugin]`, `[[service]]` ×2, `[[wiring]]` ×2, `[requires]` | `F3` | shape accepted ✔ |
 | `[[recipe]]`, `[[secret]]`, `[[override]]` **declared** | the format already carries them | shape accepted ✔ |
 | `[[claim]]` for `media.serve` and `identity.source` | **a request that can carry a header, and an expectation that can reach one level down** | blocked |
 | `[[proof]]` and `[[contribution]]` against Plex's own responses | the same two | blocked |
 | Substitution: seerr re-points with nothing edited | `F9` converts the wiring to ask | **0.17.0** |
 | `[[recipe]]`, `[[secret]]`, `[[override]]` **honoured** | `F8` | **0.18.0** |
-| A second service | a contract change | unscheduled |
+| A second service | nothing — the format always took it | declared ✔ |
 
 "Shape accepted ✔" means the published schema accepts those blocks as written.
 Nothing here has been run against a Plex, and the two blocked rows are blocked
@@ -640,12 +708,13 @@ research task. The first is new, and it outranks the rest.
    exercises the external-destination rule properly, and costs a dependency on an
    external service inside a first-run flow.
 
-4. **Does the second service earn a contract change?** The argument is above and
-   the two open questions it raises — what `[wiring]`'s single `hostname` means
-   for a plugin with two services, and whether two services of one plugin
-   claiming one capability trips `F4-R8` — are the work. Answering *no* is
-   respectable: it costs this plugin Tautulli and costs the pair analysis its
-   third destination, and everything else in this document stands.
+4. **What call configures Tautulli, and who has made it?** The second service
+   is declared, and the one thing it does not yet buy is the pair analysis's
+   third destination: that needs a recipe step carrying the Plex token to
+   `plex-stats`, and a step written from documentation nobody has run is the
+   same invention as a digest nobody resolved. This one is a decision about who
+   does it rather than what the format permits — that part is settled, and how
+   it came to look unsettled is the second finding above.
 
 5. **Who records the first fixtures?** Someone with a Plex server, once. Until
    then this repository is a specification with a manifest beside it, and

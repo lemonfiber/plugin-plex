@@ -32,8 +32,11 @@ against, nobody has run this image, and inventing one would put the single kind
 of wrong this apparatus exists to catch inside the apparatus. So `just manifest`
 is red twice over, and both are the right reason.
 
-`schema_version = 1` also permits exactly one service, and this plugin wants
-two — argued and costed in SPEC.md.
+This plugin declares two services — Plex and Tautulli beside it, on two tiers
+with two criticalities. That shape was written up here as a contract change the
+format refused; it is neither. What refused it was this repository's own interim
+validator, which had invented the rule and had a proof case behind it. SPEC.md
+§ *`[[service]]` — the thing, and the thing beside it*.
 
 Six open questions are at the end of SPEC.md. The first asks how a probe should
 ask for JSON and how an expectation should reach into a nested body; it is not

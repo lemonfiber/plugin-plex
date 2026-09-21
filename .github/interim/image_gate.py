@@ -35,9 +35,15 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 WANTED_ARCHES = {"amd64", "arm64"}
 
 
-def service() -> dict:
+def services() -> list[dict]:
+    """Every service the manifest declares, because each one pins its own image.
+
+    A plugin is often a thing and the thing beside it, and a gate reading only the
+    first would leave the second's digest — the whole of what fixes what runs —
+    checked by nothing.
+    """
     manifest = tomllib.loads((ROOT / "plugin.toml").read_text(encoding="utf-8"))
-    return manifest["service"][0]
+    return [one for one in manifest.get("service", []) if isinstance(one, dict)]
 
 
 def inspect(reference: str) -> tuple[dict | None, str]:
@@ -72,12 +78,12 @@ def arches(index: dict) -> set[str]:
     }
 
 
-def main() -> int:
-    declared = service()
+def check(declared: dict) -> list[str]:
+    """One service's image, and what this could not establish about it."""
     image, digest, tag = declared["image"], declared["digest"], declared["tag"]
     by_digest = f"{image}@{digest}"
     by_tag = f"{image}:{tag}"
-    faults = []
+    faults: list[str] = []
 
     index, why = inspect(by_digest)
     if index is None:
@@ -123,10 +129,27 @@ def main() -> int:
         print("       stand-in does not do. lemonfiber's own verification is what F3-R25 asks for.")
         faults.append(signature)
 
+    return faults
+
+
+def main() -> int:
+    declared = services()
+    if not declared:
+        print("::error::the manifest declares no service, so there is no image to check")
+        return 1
+
+    faults: list[str] = []
+    for index, one in enumerate(declared):
+        if index:
+            print()
+        print(f"{one['id']}:")
+        faults.extend(check(one))
+
     if faults:
         print(f"\n{len(faults)} problem(s).", file=sys.stderr)
         return 1
-    print("\nThe declared digest resolves, and its signature state is reported honestly.")
+    print(f"\nEvery declared digest resolves ({len(declared)}), and each signature state is "
+          "reported honestly.")
     return 0
 
 
