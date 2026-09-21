@@ -209,6 +209,22 @@ def a_schema(document: object) -> dict | None:
     return document
 
 
+def manifest_here() -> tuple[dict | None, str | None]:
+    """This repository's manifest, or why it could not be read.
+
+    One reader for every way in. A file that is missing, or is not TOML, is a
+    thing to be told rather than a traceback out of whichever program happened
+    to open it first.
+    """
+    path = ROOT / MANIFEST
+    if not path.is_file():
+        return None, f"{MANIFEST} is missing from the root of this plugin's source"
+    try:
+        return tomllib.loads(path.read_text(encoding="utf-8")), None
+    except tomllib.TOMLDecodeError as broken:
+        return None, f"{MANIFEST} is not readable as TOML: {broken}"
+
+
 def read_published(directory: str | None) -> Published:
     if directory is None:
         return Published(None, None, None)
@@ -821,7 +837,7 @@ def validate_recipes(recipes: list, requires: dict, report: Report) -> None:
         if not isinstance(recipe, dict):
             continue
         name = recipe.get("id")
-        at = f"{'[[recipe]]'} {name or f'#{index + 1}'}"
+        at = f"[[recipe]] {name or f'#{index + 1}'}"
         if isinstance(name, str):
             report.check(name not in named, at, f"{name!r} is declared twice, so naming one names both")
             named.add(name)
@@ -895,7 +911,10 @@ def validate_destination(destination: object, where: str, report: Report) -> Non
     if not isinstance(destination, str):
         return
     parts = destination.split(".")
-    numeric = len(parts) > 1 and all(part.isdigit() for part in parts)
+    # Ascii, because the reader reads it that way: a label of Arabic-Indic
+    # digits is a name to it, and refusing one here would be this file deciding
+    # something lemonfiber does not.
+    numeric = len(parts) > 1 and all(part.isascii() and part.isdigit() for part in parts)
     report.check(
         ":" not in destination and not numeric,
         where,
@@ -1247,8 +1266,13 @@ def self_test() -> int:
     """Every rule above refuses the shape it exists to refuse."""
     published = Published(SAMPLE_SCHEMA, SAMPLE_VOCABULARY, SAMPLE_POINTS)
 
+    here, why = manifest_here()
+    if here is None:
+        print(f"::error::{why}")
+        return 1
+
     report = Report()
-    validate(tomllib.loads((ROOT / MANIFEST).read_text(encoding="utf-8")), report)
+    validate(here, report)
     if report.faults:
         print("::error::self-test: the manifest in this repository was refused")
         for fault in report.faults:
@@ -1339,18 +1363,12 @@ def self_test() -> int:
 
 def held(directory: str | None) -> int:
     """This repository's manifest, against whatever was published to hold it to."""
-    path = ROOT / MANIFEST
-    if not path.is_file():
-        print(f"::error::{MANIFEST} is missing from the root of this plugin's source")
+    manifest, why = manifest_here()
+    if manifest is None:
+        print(f"::error file={MANIFEST}::{why}")
         return 1
 
     report = Report()
-    try:
-        manifest = tomllib.loads(path.read_text(encoding="utf-8"))
-    except tomllib.TOMLDecodeError as broken:
-        print(f"::error file={MANIFEST}::not readable as TOML: {broken}")
-        return 1
-
     published = read_published(directory)
     if directory is not None and not published.asked:
         missing = [
