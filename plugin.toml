@@ -27,7 +27,7 @@ forms       = ["tv", "movies", "music", "full"]
 
 # The forms that serve a library. `license` is the first proprietary one any
 # plugin has declared and the honest value for this image; whether the catalogue
-# accepts one is the first of the five open questions in SPEC.md.
+# accepts one is open question 1 of the six in SPEC.md.
 
 # ─── What runs ───────────────────────────────────────────────────────────────
 
@@ -58,6 +58,33 @@ config_path = "/config"
 # the most and is least proven. `plex:direct-play` is namespaced and inert —
 # nothing bundled consumes it — which is what F4's own example says it should be.
 provides = ["media.serve", "identity.source", "plex:direct-play"]
+
+[[service]]
+id     = "plex-stats"
+name   = "Tautulli"
+image  = "ghcr.io/tautulli/tautulli"
+digest = "sha256:40dd6dbe99afd2eac303a37f26dc72c93b865299bf8f9ff1e59506b6e87c928f"
+tag    = "v2.9.7"
+port   = 8181
+# The thing beside the thing. Plex is `lan` because the point of it is the
+# television; this is an operator surface reading Plex's API and has no business
+# being reachable from the sofa, so it is `loopback`. Two tiers in one manifest
+# is the half of `[[service]]` a single-service plugin cannot exercise, and a
+# format permitting one would push the wider tier onto both halves.
+bind   = "loopback"
+# And two criticalities. Losing Plex means nobody can watch; losing this means a
+# graph is missing.
+criticality = "enhancing"
+# It reads Plex over the API and keeps its own history database. It never opens
+# the library, so the data root is not mounted for it — the contrast with the
+# service above is the point, and `takes_data` is where a manifest says so.
+takes_data  = false
+config_path = "/config"
+# Namespaced and inert: nothing bundled consumes it, and a namespaced name has no
+# published contract to satisfy, so it carries no `[[claim]]` and needs no probe.
+# It is also why this is not the collision `F4-R8` refuses — two services of one
+# plugin may not both answer a *core* name, and neither of these does twice.
+provides = ["plex:watch-history"]
 
 # ─── Claims ──────────────────────────────────────────────────────────────────
 #
@@ -111,8 +138,21 @@ fixture = "fixtures/accounts-anonymous.json"
 
 # ─── Wiring ──────────────────────────────────────────────────────────────────
 
-[wiring]
+# `service` is optional for a plugin declaring one and required past that: a
+# hostname is a fact about one container, and a manifest leaving it to be
+# inferred would be inferring which of two the household reaches.
+
+[[wiring]]
+service         = "plex"
 hostname        = "plex"
+dashboard_group = "Watch"
+
+# No `hostname`, because a `loopback` service gets no proxy stanza — there is no
+# name in front of the operator's domain to put it behind. It does get a
+# dashboard entry, with the href rendered from its tier, and this is the group it
+# belongs in.
+[[wiring]]
+service         = "plex-stats"
 dashboard_group = "Watch"
 
 # ─── The first-run flow ──────────────────────────────────────────────────────
@@ -280,6 +320,7 @@ capabilities = [
 
 [[proof]]
 id      = "identity-before-claim"
+service = "plex"
 title   = "It says which server it is before anybody has claimed it"
 fixture = "fixtures/identity-anonymous.json"
 why     = "Something has to be answerable before authentication or nothing could ever authenticate, and this is the part with nothing of the household's in it."
@@ -288,6 +329,7 @@ expect  = { status = 200, json_has_keys = ["MediaContainer"] }
 
 [[proof]]
 id      = "catalogue-refuses-anonymous"
+service = "plex"
 title   = "The catalogue refuses a caller presenting nothing"
 fixture = "fixtures/library-sections-anonymous.json"
 why     = "A proof reading only a status here would pass against a build with no library at all; this asserts the body Plex actually returns."
@@ -296,6 +338,7 @@ expect  = { status = 401, json_has_keys = ["errors"] }
 
 [[proof]]
 id      = "accounts-refuses-anonymous"
+service = "plex"
 title   = "It says nothing about who has an account here"
 fixture = "fixtures/accounts-anonymous.json"
 why     = "The line between this and the identity proof is the whole of identity.source: which server, to anybody; who is on it, to nobody."
