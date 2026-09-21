@@ -1,21 +1,29 @@
-# AGENTS.md — plugin-template
+# AGENTS.md — plugin-plex
 
 Guidance for any AI agent working in this repo.
 
 > **Common rules for every lemonfiber repo are canonical in the spec:**
 > [50-governance/ai-contributors.md](https://github.com/lemonfiber/spec/blob/main/50-governance/ai-contributors.md).
-> Read them. This file is the `plugin-template`-specific header only.
+> Read them. This file is the `plugin-plex`-specific header only.
 
 ## What this repo is
 
-The plugin an author copies, and the **canonical home of the interim CI
-harness**. `plugin-komga` and `plugin-uptime-kuma` carry byte-identical copies of
-`.github/interim/` and each has a job that fails when its copy drifts from this
-one. Change the harness here, then copy it to both; changing it there fails.
+Plex as a lemonfiber plugin, and **the repository that demonstrates a gap in the
+plugin contract rather than working around it**. Read [SPEC.md](SPEC.md) before
+changing `plugin.toml`; the headline section is not background.
 
-The plugin itself describes Kavita, and it describes something real on purpose:
-`F10-R7` asks for a template that validates and proves *unmodified*, and a
-template whose proofs are invented teaches an author to invent proofs.
+The short version: Plex cannot make a claim this contract can express. Its
+identity endpoint answers XML unless asked for JSON, a probe cannot ask, an
+expectation cannot reach into a `MediaContainer`, and the setting that matters
+sits in a list whose order nobody promised. The manifest here is written as Plex
+actually needs it — refused headers and all — because a manifest edited until
+the gate went quiet would have hidden the finding this repository exists to
+produce.
+
+`.github/interim/` is a **copy** of the harness whose canonical home is
+`plugin-template`. The `harness` job compares the two byte for byte, so it is
+changed there and copied here, never the other way round. Re-fetch before
+touching it: this copy has already been two merges stale once.
 
 ## The rules you cannot break
 
@@ -62,6 +70,22 @@ each. `just` lists the recipes it is made of.
 `proofs.json` is generated and committed; CI fails when the committed one is not
 what the run would write. `prove.py` writes it only when given
 `--report proofs.json`, which is why the recipe passes the flag.
+
+### Three jobs are red here, on purpose
+
+`manifest`, `proofs` and `reader` fail on every pull request in this repository,
+and that is the finding rather than a break. They are the jobs that hold
+`plugin.toml` to the published schema, and the manifest deliberately carries what
+the schema refuses — see [SPEC.md](SPEC.md) § *The finding*.
+
+So they are **deliberately absent from `main`'s required contexts**. The other
+fifteen are required, `strict` and `enforce_admins` are on, and the three go back
+in the day the contract can express a Plex claim. If you are here because that
+gap looks like an oversight and you are about to add them: adding them locks this
+repository, because nothing can pass them until `spec#458` lands.
+
+Do not make the manifest pass by trimming it. That is the one change this
+repository cannot accept.
 
 ## Before you open a PR
 
