@@ -279,8 +279,8 @@ question 1**, below.
 id          = "plex"
 name        = "Plex"
 image       = "docker.io/plexinc/pms-docker"
-digest      = "sha256:…"
-tag         = "1.41.9.9961"
+digest      = "sha256:e0ab2739…"
+tag         = "1.43.4.10903-e5521bd8c"
 port        = 32400
 bind        = "lan"
 health      = { kind = "http", path = "/identity", timeout_s = 90 }
