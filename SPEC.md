@@ -46,7 +46,8 @@ worth having:
    yet" — cannot. Three separate rules meet, and the section below sets it out.
 2. **`schema_version = 1` permits exactly one service.** Not merely unexercised,
    refused: `plugin-manifest.md:74`, and the reader agrees. The two-service
-   shape this plugin wants is a contract change, costed below.
+   shape this plugin wants is a contract change, costed below. *(Made, 22
+   September 2026: `ARCH-R126`. See below.)*
 3. **The recordings have to come from somewhere.** They cannot be written at a
    desk, and `F10`'s promise depends on somebody having made them once.
 
@@ -391,12 +392,27 @@ services of one plugin claiming one capability is a collision. Those are the two
 real questions, and they are why "exactly one, in this version" is a defensible
 place to have stopped rather than an oversight.
 
-**Both are now answered**, which is the larger half of this plugin's argument
-landing: `ARCH-R127` makes wiring a list declared per service, and `ARCH-R126`
-says a plugin may declare more than one service while at most one of them may
-declare a given core capability — refused naming the capability and both
-services. What remains before the `plex-stats` block above can be uncommented is
-a reader that installs two, not a contract that permits them.
+**Both are now answered, and the answer is yes**, which is this plugin's largest
+argument landing: `ARCH-R127` makes wiring a list declared per service, and
+`ARCH-R126` says a plugin may declare more than one service while at most one of
+them may declare a given core capability — refused naming the capability and both
+services.
+
+The reader agrees, and was asked rather than assumed. A two-service manifest
+built to check it is read, both services are seen, and the only refusals are the
+new rules doing their job:
+
+```
+wiring #1.service        — names no service, and this plugin declares more than
+                           one; it declares: kavita, kavita-stats
+proof …serves.service    — the same
+contribution ….service   — the same
+```
+
+So nothing stands between the `plex-stats` block above and being uncommented
+except the words: a `service = "plex-stats"` on its wiring, and one on every
+proof and contributed check that asks a particular service (`ARCH-R128`). That is
+a decision about whether this plugin wants Tautulli, not a wait on anything.
 
 `plex:direct-play` is the namespaced example `F4` itself uses, kept.
 
@@ -647,7 +663,7 @@ ability to *honour* a part of it.
 | `[[proof]]` and `[[contribution]]` against Plex's own responses | the same two, plus the list selector | **shape accepted ✔** |
 | Substitution: seerr re-points with nothing edited | `F9` converts the wiring to ask | **0.17.0** |
 | `[[recipe]]`, `[[secret]]`, `[[override]]` **honoured** | `F8` | **0.18.0** |
-| A second service | a reader that installs two (`ARCH-R126` permits them) | unscheduled |
+| A second service | nothing — `ARCH-R126` permits it and the reader reads it | **shape accepted ✔**, and a decision |
 
 "Shape accepted ✔" means the published schema accepts those blocks as written.
 Nothing here has been run against a Plex, and the two blocked rows are blocked
@@ -688,10 +704,19 @@ test of whether `F9` and `F8` landed as specified — and the day `plugin-plex`'
 These are the six this cannot be written past. Each is a decision, not a
 research task. The first is new, and it outranks the rest.
 
-0. **How does a probe ask for JSON, and how does an expectation reach into a
-   nested body?** The finding above. It blocks both of this plugin's claims, it
-   is not specific to Plex, and it is the one question here that is worth
-   answering whether or not this plugin is ever built.
+0. ~~**How does a probe ask for JSON, and how does an expectation reach into a
+   nested body?**~~ **Answered, 22 September 2026.** A request names the one
+   representation it asks for, as `accept` — one media type, not a header map
+   (`ARCH-R123`). An expectation's key is a place, written as a JSON Pointer with
+   a step that picks one entry of an array by a field it holds (`ARCH-R125`).
+   Both were worth answering whether or not this plugin is ever built, which is
+   why it was worth writing a manifest nobody could install.
+
+   What it did **not** answer, and the successor to this question: **how does a
+   probe present a credential without a `guarded` probe silently gaining the
+   ability to?** `media.serve`'s `catalogue` probe is blocked on it, and the
+   reason `accept` stopped short of a header map is that nobody has an answer
+   that keeps *asked as nobody* checkable by the form rather than by a reviewer.
 
 1. **Does `F2`'s open-source constraint bind a plugin?** `f2-service-catalogue.md`
    excludes Plex from the *bundled* catalogue for not being open source. If that
