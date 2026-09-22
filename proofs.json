@@ -1,0 +1,72 @@
+{
+  "lemonfiber": null,
+  "against": "fixtures",
+  "proofs": [
+    {
+      "id": "identity-before-claim",
+      "kind": "proof",
+      "outcome": "passed",
+      "detail": "HTTP 200, and the body it declares"
+    },
+    {
+      "id": "catalogue-refuses-anonymous",
+      "kind": "proof",
+      "outcome": "fail",
+      "detail": "status 200, and it declares 401; the body carries no 'errors'"
+    },
+    {
+      "id": "accounts-refuses-anonymous",
+      "kind": "proof",
+      "outcome": "fail",
+      "detail": "status 200, and it declares 401; the body carries no 'errors'"
+    },
+    {
+      "id": "media.serve/guarded",
+      "kind": "probe",
+      "outcome": "fail",
+      "detail": "status 200, and it declares 401"
+    },
+    {
+      "id": "media.serve/catalogue",
+      "kind": "probe",
+      "outcome": "unproven",
+      "detail": "names fixtures/library-sections-operator.json, which is not in this source"
+    },
+    {
+      "id": "identity.source/identifies",
+      "kind": "probe",
+      "outcome": "passed",
+      "detail": "HTTP 200, and the body it declares"
+    },
+    {
+      "id": "identity.source/guarded",
+      "kind": "probe",
+      "outcome": "fail",
+      "detail": "status 200, and it declares 401"
+    },
+    {
+      "id": "plex:claimed",
+      "kind": "check",
+      "outcome": "unproven",
+      "detail": "names fixtures/identity-claimed.json, which is not in this source"
+    },
+    {
+      "id": "plex:no-anonymous-lan",
+      "kind": "check",
+      "outcome": "fail",
+      "detail": "status 200, and it declares 401"
+    },
+    {
+      "id": "plex:not-published",
+      "kind": "check",
+      "outcome": "fail",
+      "detail": "/MediaContainer/Setting/[id=PublishServerOnPlexOnlineKey]/value is None, and it declares False"
+    },
+    {
+      "id": "plex:libraries-match",
+      "kind": "check",
+      "outcome": "unproven",
+      "detail": "names fixtures/library-sections-operator.json, which is not in this source"
+    }
+  ]
+}

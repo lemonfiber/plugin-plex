@@ -67,24 +67,35 @@ provides = ["media.serve", "identity.source", "plex:direct-play"]
 # catch, sitting inside the apparatus. `just manifest` is red until somebody
 # with a Plex server records them once — SPEC.md § The recordings.
 #
-# THE HEADERS BELOW ARE REFUSED BY THE PUBLISHED SCHEMA, deliberately left in.
+# TWO OF THE THREE REFUSALS THIS FILE REPORTED ARE ANSWERED. The third is not,
+# and it is the one worth having.
 #
-# `PluginRequest` is {method, path} with additionalProperties: false, so a probe
-# cannot send `Accept: application/json` — and Plex answers XML without it,
-# while media.serve's `catalogue` probe permits only JSON body assertions. The
-# assertions cannot reach `MediaContainer.*` either: the expectation vocabulary
-# is flat and the runner looks a key up with `key not in body`.
+# Answered: a request may name the representation it asks for (`accept`,
+# ARCH-R123), which is what Plex needs and had no field for — it answers XML at
+# every path, including the one its own health probe uses, unless asked
+# otherwise. And an expectation's key is now a place rather than a top-level
+# name (ARCH-R125), so `/MediaContainer/claimed` reaches what this service
+# actually nests. Note what the old spelling was: `MediaContainer.size` was not
+# a path with a dot in it, it was a request for a top-level member literally so
+# named, which Plex does not return and never did.
 #
-# Written as Plex actually needs them rather than trimmed to what validates,
-# because a manifest edited until the gate went quiet would have hidden the one
-# finding this plugin exists to produce. SPEC.md § The finding.
+# Not answered, and deliberately: `catalogue` below still asks with an
+# `X-Plex-Token`, and there is no field for it. `PluginRequest` grants one media
+# type rather than a header map, so that *asked as nobody* stays a property of
+# the form — any service may name its credential header whatever it likes, so no
+# list of refused names could ever be closed, and `none` on every `guarded`
+# probe has meant what it says partly because nothing could be presented.
+#
+# It is left as Plex actually needs it rather than trimmed to what validates,
+# because a manifest edited until the gate went quiet would hide the finding this
+# plugin exists to produce. SPEC.md § The finding.
 
 [[claim]]
 capability = "media.serve"
 
 [[claim.probe]]
 id      = "guarded"
-request = { method = "GET", path = "/library/sections", headers = { Accept = "application/json" } }
+request = { method = "GET", path = "/library/sections", accept = "application/json" }
 expect  = { status = 401 }
 fixture = "fixtures/library-sections-anonymous.json"
 
@@ -99,19 +110,21 @@ capability = "identity.source"
 
 [[claim.probe]]
 id      = "identifies"
-request = { method = "GET", path = "/identity", headers = { Accept = "application/json" } }
+request = { method = "GET", path = "/identity", accept = "application/json" }
 expect  = { status = 200, json_has_keys = ["MediaContainer"] }
 fixture = "fixtures/identity-anonymous.json"
 
 [[claim.probe]]
 id      = "guarded"
-request = { method = "GET", path = "/accounts", headers = { Accept = "application/json" } }
+request = { method = "GET", path = "/accounts", accept = "application/json" }
 expect  = { status = 401 }
 fixture = "fixtures/accounts-anonymous.json"
 
 # ─── Wiring ──────────────────────────────────────────────────────────────────
 
-[wiring]
+# A list, and one entry, because wiring is a fact about a service rather than
+# about a plugin (ARCH-R127). One service here, so the entry names none.
+[[wiring]]
 hostname        = "plex"
 dashboard_group = "Watch"
 
@@ -195,8 +208,8 @@ at        = "doctor.check"
 id        = "plex:claimed"
 title     = "Plex has an owner, so nobody else can become one"
 category  = "services"
-request   = { method = "GET", path = "/identity", headers = { Accept = "application/json" } }
-expect    = { status = 200, json = { MediaContainer = { claimed = true } } }
+request   = { method = "GET", path = "/identity", accept = "application/json" }
+expect    = { status = 200, json = { "/MediaContainer/claimed" = true } }
 fixture   = "fixtures/identity-claimed.json"
 timeout_s = 10
 why       = "An unclaimed Plex server hands ownership to whoever reaches it first."
@@ -213,7 +226,7 @@ at        = "doctor.check"
 id        = "plex:no-anonymous-lan"
 title     = "The catalogue still refuses a caller presenting nothing"
 category  = "credentials"
-request   = { method = "GET", path = "/library/sections", headers = { Accept = "application/json" } }
+request   = { method = "GET", path = "/library/sections", accept = "application/json" }
 expect    = { status = 401 }
 fixture   = "fixtures/library-sections-anonymous.json"
 timeout_s = 10
@@ -231,11 +244,18 @@ at        = "doctor.check"
 id        = "plex:not-published"
 title     = "Plex is not publishing itself to the internet on its own"
 category  = "network"
-request   = { method = "GET", path = "/:/prefs", headers = { Accept = "application/json" } }
-expect    = { status = 200, json = { MediaContainer = { publishServerOnPlexOnlineKey = false } } }
+request   = { method = "GET", path = "/:/prefs", accept = "application/json" }
+expect    = { status = 200, json = { "/MediaContainer/Setting/[id=PublishServerOnPlexOnlineKey]/value" = false } }
 fixture   = "fixtures/prefs-not-published.json"
 timeout_s = 10
 why       = "Plex can open its own way in through plex.tv's relay, which is a second door lemonfiber did not open and does not watch."
+# The one check in this file that needs the selector, and the reason it exists.
+# This setting is not a member of anything: it is one of 151 entries of
+# `MediaContainer.Setting`, found by the `id` it carries. An index would have
+# reached it too and been wrong one release later, because nobody promised the
+# order. The spelling the old draft used — a top-level
+# `publishServerOnPlexOnlineKey`, lowercase — is not in the recording at all,
+# which is what "unexpressible" meant in SPEC.md rather than "awkward".
 
 [[contribution]]
 at     = "doctor.remedy"
@@ -249,8 +269,8 @@ at        = "doctor.check"
 id        = "plex:libraries-match"
 title     = "Every Plex library points where the stack files that media type"
 category  = "storage"
-request   = { method = "GET", path = "/library/sections", headers = { Accept = "application/json" } }
-expect    = { status = 200, json_at_least = { "MediaContainer.size" = 1 } }
+request   = { method = "GET", path = "/library/sections", accept = "application/json" }
+expect    = { status = 200, json_at_least = { "/MediaContainer/size" = 1 } }
 fixture   = "fixtures/library-sections-operator.json"
 timeout_s = 10
 why       = "A Plex library scanning the wrong directory files nothing, throws nothing, and shows an empty shelf for a media type the stack is still acquiring into."
@@ -283,7 +303,7 @@ id      = "identity-before-claim"
 title   = "It says which server it is before anybody has claimed it"
 fixture = "fixtures/identity-anonymous.json"
 why     = "Something has to be answerable before authentication or nothing could ever authenticate, and this is the part with nothing of the household's in it."
-request = { method = "GET", path = "/identity", headers = { Accept = "application/json" } }
+request = { method = "GET", path = "/identity", accept = "application/json" }
 expect  = { status = 200, json_has_keys = ["MediaContainer"] }
 
 [[proof]]
@@ -291,7 +311,7 @@ id      = "catalogue-refuses-anonymous"
 title   = "The catalogue refuses a caller presenting nothing"
 fixture = "fixtures/library-sections-anonymous.json"
 why     = "A proof reading only a status here would pass against a build with no library at all; this asserts the body Plex actually returns."
-request = { method = "GET", path = "/library/sections", headers = { Accept = "application/json" } }
+request = { method = "GET", path = "/library/sections", accept = "application/json" }
 expect  = { status = 401, json_has_keys = ["errors"] }
 
 [[proof]]
@@ -299,5 +319,5 @@ id      = "accounts-refuses-anonymous"
 title   = "It says nothing about who has an account here"
 fixture = "fixtures/accounts-anonymous.json"
 why     = "The line between this and the identity proof is the whole of identity.source: which server, to anybody; who is on it, to nobody."
-request = { method = "GET", path = "/accounts", headers = { Accept = "application/json" } }
+request = { method = "GET", path = "/accounts", accept = "application/json" }
 expect  = { status = 401, json_has_keys = ["errors"] }
