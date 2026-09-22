@@ -46,7 +46,8 @@ worth having:
    yet" — cannot. Three separate rules meet, and the section below sets it out.
 2. **`schema_version = 1` permits exactly one service.** Not merely unexercised,
    refused: `plugin-manifest.md:74`, and the reader agrees. The two-service
-   shape this plugin wants is a contract change, costed below.
+   shape this plugin wants is a contract change, costed below. *(Made, 22
+   September 2026: `ARCH-R126`. See below.)*
 3. **The recordings have to come from somewhere.** They cannot be written at a
    desk, and `F10`'s promise depends on somebody having made them once.
 
@@ -63,6 +64,27 @@ regression that passed the wrong one.
 ---
 
 ## The finding: Plex cannot make a claim
+
+> **What came of it, 22 September 2026.** Three of the four rules below are
+> answered, by `ARCH-R123` and `ARCH-R125` in
+> [lemonfiber/spec#468](https://github.com/lemonfiber/spec/pull/468) and the reader
+> in [lemonfiber/lemonfiber#729](https://github.com/lemonfiber/lemonfiber/pull/729).
+> A request may name the one representation it asks for (`accept`), and an
+> expectation's key is a place rather than a top-level name — a JSON Pointer,
+> extended with a `[field=value]` step that picks one entry of an array by a field
+> it holds. That last part is what makes `plex:not-published` writable at all; it
+> is not a convenience.
+>
+> **Rule one stands, narrowed to its point.** A probe still cannot present a
+> credential, and that is now a decision rather than an omission: `accept` grants
+> one media type and not a header map, so *asked as nobody* stays a property of the
+> form. Any service may name its credential header whatever it likes, so no list of
+> refused names could ever be closed. `media.serve`'s `catalogue` probe therefore
+> remains unwritable here, and the manifest still carries it as Plex needs it
+> rather than trimmed to what validates.
+>
+> The sections below are left as they were written, because a finding report that
+> is edited to match the outcome stops being evidence of what was found.
 
 Raised as [lemonfiber/spec#458](https://github.com/lemonfiber/spec/issues/458),
 and **measured** against `plexinc/pms-docker@sha256:e0ab2739…` (`1.43.4.10903`)
@@ -166,6 +188,35 @@ anybody. The two `????` need a claimed server. And `plex:not-published`'s
 refusal printed all 151 settings into the message, which is a small separate
 point about a refusal nobody can read.
 
+That last one no longer asks the wrong question. It was written against a
+top-level `publishServerOnPlexOnlineKey` — lowercase, and not in the recording at
+all — so it could not have passed against any Plex. It now reads
+`/MediaContainer/Setting/[id=PublishServerOnPlexOnlineKey]/value`, which is where
+the setting is. Run against the same recording by the reader itself:
+
+```
+plex:not-published — Plex is not publishing itself to the internet on its own
+  plex — the recording answers it
+```
+
+**That is the first assertion this plugin has made that passes on substance.**
+The two that passed before both said an envelope came back. This one reaches an
+entry of a 151-long array, finds it by the `id` it carries, and reads the value
+— which is the check the section above called unexpressible and said would need
+a predicate rather than a path.
+
+Two other things came out of running the reader rather than the stand-in, both
+defects here rather than in it. The recordings named `plexinc/pms-docker@…`
+while the manifest pins `docker.io/plexinc/pms-docker@…`; same image, same
+digest, and the reader compares the strings, so every recording read as *taken
+from another build* — silently the worst outcome available, since it is the
+check that exists to catch exactly that drift. They are now spelled as the
+manifest pins them, which is what both published plugins already did. And the
+interim `prove.py` reports the pointer as unresolved, because the selector is
+the reader's and the stand-in does not implement it: one more line in the column
+of `reader_gate.py`'s argument that a stand-in's danger is not that it is weak
+but that it is quiet.
+
 ### Why this has never bitten
 
 Every recorded fixture in both published plugins is flat at the top level —
@@ -195,6 +246,16 @@ This is a decision, and it belongs to whoever owns `F4` rather than to this
 plugin. What this plugin can say is that the gap is real, that it is reachable
 from the first serious manifest anybody wrote, and that it blocks the case the
 whole extensibility arc was designed around.
+
+**Decided: the third and the second, and not the first.** `ARCH-R123` takes
+`accept` rather than `headers`, for the reason the first candidate named against
+itself — a probe that can send headers can send credentials, and `credential:
+"none"` means what it means only because nothing can be sent. `ARCH-R125` takes
+the path syntax, and goes one step past what was asked for: a plain JSON Pointer
+would still not have reached `PublishServerOnPlexOnlineKey`, which is an entry of
+a 151-long array found by the `id` it carries. The selector is the answer to that
+specific paragraph above, which is why it is a selector by field and not an
+index — the order of Plex's settings is not a promise anybody made.
 
 ---
 
@@ -331,6 +392,28 @@ services of one plugin claiming one capability is a collision. Those are the two
 real questions, and they are why "exactly one, in this version" is a defensible
 place to have stopped rather than an oversight.
 
+**Both are now answered, and the answer is yes**, which is this plugin's largest
+argument landing: `ARCH-R127` makes wiring a list declared per service, and
+`ARCH-R126` says a plugin may declare more than one service while at most one of
+them may declare a given core capability — refused naming the capability and both
+services.
+
+The reader agrees, and was asked rather than assumed. A two-service manifest
+built to check it is read, both services are seen, and the only refusals are the
+new rules doing their job:
+
+```
+wiring #1.service        — names no service, and this plugin declares more than
+                           one; it declares: kavita, kavita-stats
+proof …serves.service    — the same
+contribution ….service   — the same
+```
+
+So nothing stands between the `plex-stats` block above and being uncommented
+except the words: a `service = "plex-stats"` on its wiring, and one on every
+proof and contributed check that asks a particular service (`ARCH-R128`). That is
+a decision about whether this plugin wants Tautulli, not a wait on anything.
+
 `plex:direct-play` is the namespaced example `F4` itself uses, kept.
 
 #### A side note this turned up
@@ -401,13 +484,18 @@ that is precisely and only that. `GET /accounts` without a token is `401`.
 makes it the single most valuable place in the stack for substitution to be
 demonstrated and the single most fragile place for it to be left unproven.
 
-### `[wiring]`
+### `[[wiring]]`
 
 ```toml
-[wiring]
+[[wiring]]
 hostname        = "plex"
 dashboard_group = "Watch"
 ```
+
+A list since `ARCH-R127`, because wiring is a fact about a service rather than
+about a plugin. One service here, so this entry names none: there is nothing to
+choose between. The two-service shape argued for below would have to name one in
+each, which is the half of that argument the contract has now settled.
 
 ### `[[recipe]]` — one capture, three pairs
 
@@ -568,13 +656,14 @@ ability to *honour* a part of it.
 
 | Part | Needs | Release |
 |---|---|---|
-| `[plugin]`, `[[service]]`, `[wiring]`, `[requires]` | `F3` | shape accepted ✔ |
+| `[plugin]`, `[[service]]`, `[[wiring]]`, `[requires]` | `F3` | shape accepted ✔ |
 | `[[recipe]]`, `[[secret]]`, `[[override]]` **declared** | the format already carries them | shape accepted ✔ |
-| `[[claim]]` for `media.serve` and `identity.source` | **a request that can carry a header, and an expectation that can reach one level down** | blocked |
-| `[[proof]]` and `[[contribution]]` against Plex's own responses | the same two | blocked |
+| `[[claim]]` for `identity.source` | `accept`, and a key that is a place | **shape accepted ✔** (`ARCH-R123`, `ARCH-R125`) |
+| `[[claim]]` for `media.serve` | a probe that may present a credential | blocked, and deliberately — see *What came of it* |
+| `[[proof]]` and `[[contribution]]` against Plex's own responses | the same two, plus the list selector | **shape accepted ✔** |
 | Substitution: seerr re-points with nothing edited | `F9` converts the wiring to ask | **0.17.0** |
 | `[[recipe]]`, `[[secret]]`, `[[override]]` **honoured** | `F8` | **0.18.0** |
-| A second service | a contract change | unscheduled |
+| A second service | nothing — `ARCH-R126` permits it and the reader reads it | **shape accepted ✔**, and a decision |
 
 "Shape accepted ✔" means the published schema accepts those blocks as written.
 Nothing here has been run against a Plex, and the two blocked rows are blocked
@@ -615,10 +704,19 @@ test of whether `F9` and `F8` landed as specified — and the day `plugin-plex`'
 These are the six this cannot be written past. Each is a decision, not a
 research task. The first is new, and it outranks the rest.
 
-0. **How does a probe ask for JSON, and how does an expectation reach into a
-   nested body?** The finding above. It blocks both of this plugin's claims, it
-   is not specific to Plex, and it is the one question here that is worth
-   answering whether or not this plugin is ever built.
+0. ~~**How does a probe ask for JSON, and how does an expectation reach into a
+   nested body?**~~ **Answered, 22 September 2026.** A request names the one
+   representation it asks for, as `accept` — one media type, not a header map
+   (`ARCH-R123`). An expectation's key is a place, written as a JSON Pointer with
+   a step that picks one entry of an array by a field it holds (`ARCH-R125`).
+   Both were worth answering whether or not this plugin is ever built, which is
+   why it was worth writing a manifest nobody could install.
+
+   What it did **not** answer, and the successor to this question: **how does a
+   probe present a credential without a `guarded` probe silently gaining the
+   ability to?** `media.serve`'s `catalogue` probe is blocked on it, and the
+   reason `accept` stopped short of a header map is that nobody has an answer
+   that keeps *asked as nobody* checkable by the form rather than by a reviewer.
 
 1. **Does `F2`'s open-source constraint bind a plugin?** `f2-service-catalogue.md`
    excludes Plex from the *bundled* catalogue for not being open source. If that
@@ -640,12 +738,16 @@ research task. The first is new, and it outranks the rest.
    exercises the external-destination rule properly, and costs a dependency on an
    external service inside a first-run flow.
 
-4. **Does the second service earn a contract change?** The argument is above and
-   the two open questions it raises — what `[wiring]`'s single `hostname` means
-   for a plugin with two services, and whether two services of one plugin
-   claiming one capability trips `F4-R8` — are the work. Answering *no* is
-   respectable: it costs this plugin Tautulli and costs the pair analysis its
-   third destination, and everything else in this document stands.
+4. **Does the second service earn a contract change?** ~~The argument is above
+   and the two open questions it raises — what `[wiring]`'s single `hostname`
+   means for a plugin with two services, and whether two services of one plugin
+   claiming one capability trips `F4-R8` — are the work.~~ **Both were answered
+   yes, on 22 September 2026**: `ARCH-R127` makes wiring a list declared per
+   service, and `ARCH-R126` permits several services while refusing two of one
+   plugin that declare the same core capability, naming the capability and both.
+   The contract change is made. What is still open is narrower and is no longer
+   a question for the contract: whether the reader installs two, and whether this
+   plugin's Tautulli is worth being the first to ask it to.
 
 5. **Who records the first fixtures?** Someone with a Plex server, once. Until
    then this repository is a specification with a manifest beside it, and

@@ -12,13 +12,18 @@ Plex as a lemonfiber plugin, and **the repository that demonstrates a gap in the
 plugin contract rather than working around it**. Read [SPEC.md](SPEC.md) before
 changing `plugin.toml`; the headline section is not background.
 
-The short version: Plex cannot make a claim this contract can express. Its
-identity endpoint answers XML unless asked for JSON, a probe cannot ask, an
-expectation cannot reach into a `MediaContainer`, and the setting that matters
-sits in a list whose order nobody promised. The manifest here is written as Plex
-actually needs it — refused headers and all — because a manifest edited until
-the gate went quiet would have hidden the finding this repository exists to
-produce.
+The short version, as it now stands: a probe **can** ask for JSON (`accept`), an
+expectation **can** reach into a `MediaContainer`, and the setting that matters —
+one of 151, in a list whose order nobody promised — is reachable by the `id` it
+carries rather than by an index. What Plex still cannot do is present a
+credential: `media.serve`'s `catalogue` probe has to, and there is no field for
+one, deliberately.
+
+So the manifest here is still written as Plex actually needs it, refused probe
+and all, because a manifest edited until the gate went quiet would hide the
+finding this repository exists to produce. **Do not make `lemonfiber plugin
+claims` pass by editing that probe.** If it ever passes, it is because the
+contract changed, and `SPEC.md` § *The finding* is where that is recorded.
 
 `.github/interim/` is a **copy** of the harness whose canonical home is
 `plugin-template`. The `harness` job compares the two byte for byte, so it is
