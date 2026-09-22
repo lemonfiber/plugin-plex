@@ -442,60 +442,31 @@ def its_own(name: object, plugin_id: str) -> bool:
     return prefix == plugin_id and bool(rest)
 
 
-def core_claims(services: list[dict], plugin_id: str) -> list[str]:
-    """Every capability the plugin's services claim that is not its own to define.
-
-    Across all of them and each name once, because a claim answers the plugin
-    rather than one container: which of its services declares a capability is a
-    question `provides` settles, and `[[claim]]` never asks it.
-    """
-    found: list[str] = []
-    for service in services:
-        for name in listed(service.get("provides")):
-            if isinstance(name, str) and not its_own(name, plugin_id) and name not in found:
-                found.append(name)
-    return found
+def core_claims(service: dict, plugin_id: str) -> list[str]:
+    """Every capability a service claims that is not its own to define."""
+    return [
+        name for name in listed(service.get("provides"))
+        if isinstance(name, str) and not its_own(name, plugin_id)
+    ]
 
 
-def validate_provides(services: list[dict], plugin_id: str, published: Published,
-                      report: Report) -> None:
-    """Capabilities claimed (`F4-R1`, `ARCH-R102`, `F4-R8`).
+def validate_provides(service: dict, plugin_id: str, published: Published, report: Report) -> None:
+    """Capabilities claimed (`F4-R1`, `ARCH-R102`).
 
     Two shapes and no third. A core name is lemonfiber's, comes from the
     published vocabulary, and has to be demonstrated by a `[[claim]]`; a
     namespaced one is this plugin's, is inert until something asks for it, and
     has no published contract to satisfy. Which of the two a name is, is read off
     the name; whether the first kind names anything is the vocabulary's to say.
-
-    A core name is also one service's. Something asks for a capability by name and
-    exactly one service answers, so the same core name on two services of one
-    plugin is two answers to one question — settled here rather than contested on
-    an operator's machine. A namespaced name is inert and collides with nothing.
     """
-    answering: dict[str, str] = {}
-    claimed: list[tuple[str, str]] = []
-    for service in services:
-        who = service.get("id")
-        who = who if isinstance(who, str) else "?"
-        at = f"[[service]] {who}.provides"
-        for name in core_claims([service], plugin_id):
-            already = answering.get(name)
-            if already is not None:
-                report.fail(
-                    at,
-                    f"{name!r} is a core capability and {already!r} already declares it; "
-                    "something asks for one of these by name and exactly one service answers",
-                )
-                continue
-            answering[name] = who
-            claimed.append((name, at))
-
+    where = "[[service]].provides"
+    claimed = core_claims(service, plugin_id)
     if not published.asked:
         if claimed:
             report.skipped("whether each capability claimed is one the published vocabulary carries")
         return
 
-    for name, where in claimed:
+    for name in claimed:
         if published.capability(name) is not None:
             continue
         gone = published.removed(name)
@@ -514,7 +485,7 @@ def validate_provides(services: list[dict], plugin_id: str, published: Published
             )
 
 
-def validate_claims(claims: list, services: list[dict], plugin_id: str,
+def validate_claims(claims: list, service: dict, plugin_id: str,
                     published: Published, report: Report) -> None:
     """The probes a core capability is demonstrated by (`F4-R24`, `ARCH-R109`, `ARCH-R116`).
 
@@ -524,7 +495,7 @@ def validate_claims(claims: list, services: list[dict], plugin_id: str,
     said it could do. Neither half is readable from the other's schema.
     """
     where = "[[claim]]"
-    declared = core_claims(services, plugin_id)
+    declared = core_claims(service, plugin_id)
     seen: list[str] = []
 
     for index, claim in enumerate(claims):
@@ -539,7 +510,7 @@ def validate_claims(claims: list, services: list[dict], plugin_id: str,
         report.check(
             name in declared,
             at,
-            f"{name!r} is in no service's `provides`, so nothing here has said it can do it",
+            f"{name!r} is not in this service's `provides`, so the service has not said it can do it",
         )
         validate_claim_probes(claim, at, published, report)
 
@@ -963,39 +934,31 @@ def validate(manifest: dict, report: Report, published: Published | None = None)
         validate_plugin(plugin, report)
 
     services = manifest.get("service")
-    declared: list[dict] = []
+    first: dict = {}
     if isinstance(services, list):
-        # None, because the rest of the manifest is about what runs and would
-        # then describe nothing. There is no upper bound: a plugin is often a
-        # thing and the thing beside it, one install and one uninstall to an
-        # operator and two containers on two tiers, and the reader takes them.
+        # One service, because this generation of the format describes one
+        # addition to a stack that already exists. Two would make "which one did
+        # I install" a question with no good answer, and none would make the rest
+        # of the manifest describe nothing.
         report.check(
-            bool(services), "[[service]]",
-            "declares no service, so there is nothing for the rest of this manifest to be about",
+            len(services) == 1, "[[service]]",
+            f"this generation of the format describes exactly one service and {len(services)} "
+            "are declared",
         )
-        named: set[str] = set()
         for service in services:
-            if not isinstance(service, dict):
-                continue
-            declared.append(service)
-            validate_service(service, report)
-            name = service.get("id")
-            if isinstance(name, str):
-                report.check(
-                    name not in named, f"[[service]] {name}.id",
-                    f"{name!r} is declared twice, and every later rule naming a service would "
-                    "resolve to the first of them",
-                )
-                named.add(name)
-        validate_provides(declared, plugin_id, published, report)
+            if isinstance(service, dict):
+                validate_service(service, report)
+        if services and isinstance(services[0], dict):
+            first = services[0]
+            validate_provides(first, plugin_id, published, report)
 
     requires = table(manifest.get("requires"))
 
     claims = manifest.get("claim")
-    if claims is not None or core_claims(declared, plugin_id):
+    if claims is not None or core_claims(first, plugin_id):
         validate_claims(
             [one for one in listed(claims) if isinstance(one, dict)],
-            declared, plugin_id, published, report,
+            first, plugin_id, published, report,
         )
 
     for proof in listed(manifest.get("proof")):
@@ -1165,13 +1128,8 @@ BROKEN = (
      "is not an https address"),
     ("a plugin joining no form at all",
      lambda m: m["plugin"].__setitem__("forms", []), "names no form"),
-    ("a plugin that runs nothing at all",
-     lambda m: m.__setitem__("service", []), "declares no service"),
-    ("a second service under the first one's id",
-     lambda m: m["service"].append(dict(m["service"][0])), "is declared twice"),
-    ("two services of one plugin answering one core capability",
-     lambda m: m["service"].append({**m["service"][0], "id": "sample-beside"}),
-     "exactly one service answers"),
+    ("two services in one plugin",
+     lambda m: m["service"].append(dict(m["service"][0])), "exactly one service"),
     ("a digest that is not one",
      lambda m: m["service"][0].__setitem__("digest", "sha256:nope"), "hexadecimal characters"),
     ("an image carrying a second pin",
@@ -1195,9 +1153,8 @@ BROKEN = (
      "is not one plain absolute directory"),
     ("a core capability with no claim behind it",
      lambda m: m.pop("claim"), "is demonstrated, not asserted"),
-    ("a claim for something no service of this plugin said it could do",
-     lambda m: m["service"][0]["provides"].remove("media.serve"),
-     "is in no service's `provides`"),
+    ("a claim for something the service never said it could do",
+     lambda m: m["service"][0]["provides"].remove("media.serve"), "has not said it can do it"),
     ("one capability claimed twice",
      lambda m: m["claim"].append(dict(m["claim"][0])), "is claimed twice"),
     ("a claim leaving one of its capability's probes unbound",
