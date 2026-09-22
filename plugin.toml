@@ -27,7 +27,7 @@ forms       = ["tv", "movies", "music", "full"]
 
 # The forms that serve a library. `license` is the first proprietary one any
 # plugin has declared and the honest value for this image; whether the catalogue
-# accepts one is the first of the five open questions in SPEC.md.
+# accepts one is open question 1 of the six in SPEC.md.
 
 # ─── What runs ───────────────────────────────────────────────────────────────
 
