@@ -1,0 +1,23 @@
+# The lemonfiber release this plugin is validated and proved against (REPO-R56).
+#
+# It is deliberately not in `plugin.toml`, and could not be: `ARCH-R89` forbids a
+# manifest carrying a minimum lemonfiber version, because `F3-R21` requires an
+# unmet requirement to be refused by naming the capability that is missing rather
+# than a number that cannot say which one. What the manifest declares instead is
+# `[requires].capabilities`.
+#
+# This is a different fact, and a CI one: which release this repository's checks
+# run, and which release the version train re-validates this plugin against when
+# it cuts.
+#
+# `0.16.0` is the release that ships `lemonfiber plugin claims`, which is the one
+# command everything under `.github/interim/` stands in for. `reader_gate.py`
+# reads this line and fails the day that release is out, so the stand-in cannot
+# outlive the reader it approximates.
+#
+# Naming it is not a claim that this plugin installs on it. The rows this plugin
+# cannot yet honour are blocked by the contract and by two later releases —
+# SPEC.md § Which release unlocks which part — and which release validates the
+# manifest is a separate question from which release can run the recipe in it.
+
+lemonfiber = "0.16.0"
