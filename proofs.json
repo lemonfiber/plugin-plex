@@ -1,5 +1,5 @@
 {
-  "lemonfiber": null,
+  "lemonfiber": "0.16.0",
   "against": "fixtures",
   "proofs": [
     {
