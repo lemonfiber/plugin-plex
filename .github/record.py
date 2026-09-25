@@ -37,6 +37,7 @@ Needs Docker and curl. Exit 0 = recorded (or matched), 1 = it did not.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import pathlib
 import subprocess
@@ -124,7 +125,8 @@ class Instance:
     def __enter__(self) -> Instance:
         try:
             for where, subnet in NETWORKS.items():
-                docker("network", "create", "--subnet", subnet, self.networks[where])
+                docker("network", "create", "--subnet", subnet, "--gateway", gateway(subnet),
+                       self.networks[where])
             docker("run", "-d", "--name", self.server, "--network", self.networks["lan"],
                    "-p", f"127.0.0.1::{PORT}", self.image)
             docker("network", "connect", self.networks["outside"], self.server)
@@ -146,8 +148,7 @@ class Instance:
     def expected_caller(self, where: str) -> str:
         """The address Plex should log for a request from here."""
         if where == "host":
-            return docker("network", "inspect", self.networks["lan"], "--format",
-                          "{{(index .IPAM.Config 0).Gateway}}").strip()
+            return gateway(NETWORKS["lan"])
         return docker("inspect", self.clients[where], "--format",
                       f"{{{{(index .NetworkSettings.Networks \"{self.networks[where]}\").IPAddress}}}}").strip()
 
@@ -215,6 +216,11 @@ class Instance:
                 return
             time.sleep(2)
         raise RuntimeError(f"the library had not finished its first scan after {STARTUP_S}s")
+
+
+def gateway(subnet: str) -> str:
+    """The first address of a subnet, which is the gateway every network here is given."""
+    return str(next(ipaddress.ip_network(subnet).hosts()))
 
 
 def pinned() -> str:
