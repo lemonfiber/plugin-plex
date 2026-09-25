@@ -59,7 +59,13 @@ SETTLED = 10
 # expectation's `body_starts_with` to read, and no more of a page than that.
 KEPT = 200
 
-NETWORKS = {"lan": "10.232.0.0/24", "outside": "100.100.0.0/24"}
+# The two networks a device asks from. The addresses are the measurement: one range
+# private and one outside the private ranges, and SPEC.md quotes both.
+NETWORKS = {"lan": "10.232.0.0/24", "outside": "100.100.0.0/24"}  # NOSONAR - the ranges measured
+
+# The two paths asked from more than one place.
+SECTIONS = "/library/sections"
+ACCOUNTS = "/accounts"
 
 WHERE = {
     "host": "the machine Docker runs on, through a published port, which Plex logged as its "
@@ -87,24 +93,24 @@ RECORDINGS = [
     ("identity-anonymous.json", "lan", "/identity",
      ("Public server information, answered to every caller. `claimed` is false, which is the "
      "answer `plex:claimed` exists to catch.")),
-    ("library-sections-anonymous.json", "lan", "/library/sections",
+    ("library-sections-anonymous.json", "lan", SECTIONS,
      ("The catalogue refuses a device on the household network, with an HTML page rather than "
      "a document.")),
-    ("library-sections-anonymous-outside.json", "outside", "/library/sections",
+    ("library-sections-anonymous-outside.json", "outside", SECTIONS,
      ("The catalogue refuses a device outside the private ranges exactly as it refuses one "
      "inside them.")),
-    ("accounts-anonymous.json", "lan", "/accounts",
+    ("accounts-anonymous.json", "lan", ACCOUNTS,
      ("The account list refuses a device on the household network, with an HTML page rather "
      "than a document.")),
-    ("accounts-anonymous-outside.json", "outside", "/accounts",
+    ("accounts-anonymous-outside.json", "outside", ACCOUNTS,
      ("The account list refuses a device outside the private ranges exactly as it refuses one "
      "inside them.")),
-    ("library-sections-host.json", "host", "/library/sections",
+    ("library-sections-host.json", "host", SECTIONS,
      ("The catalogue, with one library pointed at /data/movies. Unclaimed, Plex admits a caller "
      "it sees arrive from its gateway, which is how Docker delivers a request the machine it "
      "runs on makes through a published port. That is the whole of the standing an unclaimed "
      "server's operator has.")),
-    ("accounts-host.json", "host", "/accounts",
+    ("accounts-host.json", "host", ACCOUNTS,
      ("The account list, admitted from the gateway as the catalogue is.")),
     ("prefs-not-published.json", "host", "/:/prefs",
      ("Server settings, admitted from the gateway. PublishServerOnPlexOnlineKey is one entry of "
@@ -157,10 +163,13 @@ class Instance:
 
     def ask(self, where: str, method: str, path: str) -> dict:
         """One request, as the recording format holds the answer."""
+        # Plex serves plain HTTP on its port, and these are the requests a household
+        # device makes of it, so they are recorded as asked.
         if where == "host":
-            command = ["curl", f"http://127.0.0.1:{self.port}{path}"]
+            command = ["curl", f"http://127.0.0.1:{self.port}{path}"]  # NOSONAR - Plex's own port
         else:
-            command = ["docker", "exec", self.clients[where], "curl", f"http://{self.server}:{PORT}{path}"]
+            command = ["docker", "exec", self.clients[where], "curl",
+                       f"http://{self.server}:{PORT}{path}"]  # NOSONAR - Plex's own port
         command[-1:-1] = ["-s", "-i", "-X", method, "-H", f"Accept: {ACCEPT}"]
         raw = subprocess.run(command, capture_output=True, check=True).stdout.decode("utf-8", "replace")
         head, _, body = raw.partition("\r\n\r\n")
@@ -223,7 +232,7 @@ class Instance:
             raise RuntimeError(f"creating the library answered {made['status']}")
         deadline = time.monotonic() + STARTUP_S
         while time.monotonic() < deadline:
-            body = self.ask("host", "GET", "/library/sections").get("json") or {}
+            body = self.ask("host", "GET", SECTIONS).get("json") or {}
             sections = body.get("MediaContainer", {}).get("Directory", [])
             if sections and not any(section.get("refreshing") for section in sections):
                 return
