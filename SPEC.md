@@ -26,7 +26,7 @@ measured against.
 |---|---|---|---|
 | `[plugin]`, `[[service]]`, `[[proof]]`, `[requires]` | ✔ | ✔ | ✔ |
 | `[[contribution]]` at `doctor.check` / `doctor.remedy` | ✔ | ✔ | ✔ |
-| `[[claim]]` + `[[claim.probe]]` | ✔ | — | two capabilities, **both blocked** |
+| `[[claim]]` + `[[claim.probe]]` | ✔ | — | two capabilities, proved against an unclaimed server |
 | A **core** capability that something asks for | inert | inert | `media.serve`, `identity.source` |
 | `[[recipe]]` / `.step` / `.pair` | ✘ | ✘ | ✔ one capture, three pairs |
 | `[[secret]]` | ✘ | ✘ | ✔ |
@@ -49,7 +49,9 @@ worth having:
    shape this plugin wants is a contract change, costed below. *(Made, 22
    September 2026: `ARCH-R126`. See below.)*
 3. **The recordings have to come from somewhere.** They cannot be written at a
-   desk, and `F10`'s promise depends on somebody having made them once.
+   desk. `.github/record.py` makes every one of them off the pinned image, and
+   CI makes them again on every pull request to check them. What it cannot
+   make is a claimed server: that needs a plex.tv account.
 
 A fourth was found and is already gone: the interim validator derived a
 namespaced capability's prefix from `service.id` rather than `plugin.id`, so a
@@ -76,12 +78,14 @@ regression that passed the wrong one.
 > is not a convenience.
 >
 > **Rule one stands, narrowed to its point.** A probe still cannot present a
-> credential, and that is now a decision rather than an omission: `accept` grants
-> one media type and not a header map, so *asked as nobody* stays a property of the
+> credential, and that is a decision rather than an omission: `accept` grants one
+> media type and not a header map, so *asked as nobody* stays a property of the
 > form. Any service may name its credential header whatever it likes, so no list of
-> refused names could ever be closed. `media.serve`'s `catalogue` probe therefore
-> remains unwritable here, and the manifest still carries it as Plex needs it
-> rather than trimmed to what validates.
+> refused names could ever be closed. `media.serve`'s `catalogue` probe does not
+> need a header in the manifest: the vocabulary gives it `credential: operator`,
+> and presenting that credential is the runner's. The probe is written with
+> `accept` alone. How the runner presents a Plex token, which Plex reads from
+> `X-Plex-Token`, is open question 0.
 >
 > The sections below are left as they were written, because a finding report that
 > is edited to match the outcome stops being evidence of what was found.
@@ -138,84 +142,94 @@ MediaContainer.Setting[] → the entry whose id == "PublishServerOnPlexOnlineKey
 drafted below are unexpressible, and for this one a predicate is needed rather
 than a path.
 
-### And a fourth, found by running it
+### What an unclaimed Plex answers, measured
 
-An unclaimed Plex answers **200 to everything, anonymously**:
+`.github/record.py` starts the pinned image, never claimed, and asks it each
+question presenting nothing and asking for `application/json`, from one of three
+places. Plex logs the address of every caller, and the recorder refuses to write
+a recording unless Plex logged the address it was meant to be asked from.
 
-| Call | The probe requires | A fresh Plex answers |
-|---|---|---|
-| `GET /library/sections` | `401`/`403` — `media.serve` `guarded` | `200` and the catalogue |
-| `GET /accounts` | `401`/`403` — `identity.source` `guarded` | `200` and `Account:[{"name":"Administrator",…}]` |
+| Call | Asked from | Plex answers | Recording |
+|---|---|---|---|
+| `GET /identity` | another device on its network, `10.232.0.3` | `200`, `claimed: false` | `identity-anonymous.json` |
+| `GET /library/sections` | another device on its network, `10.232.0.3` | `401`, an HTML page | `library-sections-anonymous.json` |
+| `GET /library/sections` | a device outside the private ranges, `100.100.0.3` | `401`, an HTML page | `library-sections-anonymous-outside.json` |
+| `GET /accounts` | another device on its network, `10.232.0.3` | `401`, an HTML page | `accounts-anonymous.json` |
+| `GET /accounts` | a device outside the private ranges, `100.100.0.3` | `401`, an HTML page | `accounts-anonymous-outside.json` |
+| `GET /library/sections` | the machine it runs on, through a published port: its gateway, `10.232.0.1` | `200` and the catalogue | `library-sections-host.json` |
+| `GET /accounts` | its gateway, `10.232.0.1` | `200`: `Administrator` and one unnamed account | `accounts-host.json` |
+| `GET /:/prefs` | its gateway, `10.232.0.1` | `200` and 151 settings | `prefs-not-published.json` |
 
-That is the default state between install and the first-run flow, and it is why
-`plex:claimed` below is not the same check as Komga's. On Komga an unclaimed
-server is an ownership risk: whoever asks first becomes administrator. Here it
-is that **and** a disclosure — the account list is already readable by anything
-on the household network.
+**An unclaimed Plex does not sort callers by address range.** It refuses every
+device presenting nothing, `10.232.0.3` and `100.100.0.3` alike, with the same
+page: `401`, `text/html`, `<html><head><title>Unauthorized</title>…`. Of the
+three places, it admits one: the caller it sees arrive from its gateway, which is where Docker
+delivers a request the machine it runs on makes through a published port. From
+there the catalogue, the account list and every setting are answered to a caller
+presenting nothing.
 
-It does not invalidate the claims: `F4` runs a probe against the recording, and
-the recording would be of a claimed server. What it does mean is that the window
-`F8`'s recipe closes is a window worth closing quickly, and that `F6` should
-probably not put a service on the `lan` tier before its recipe has run.
+What that means here:
 
-### What the runner actually says
+- **The two `guarded` probes and `plex:no-anonymous-lan` hold** against a device
+  on the household network before anybody has claimed the server, and the
+  `401` is Plex's own refusal page rather than a proxy's.
+- **Where a probe is asked from decides its verdict.** A probe or check asked
+  from the machine Plex runs on, through a published port, arrives from the
+  gateway and is admitted while the server is unclaimed: both `guarded` probes
+  and `plex:no-anonymous-lan` fail asked that way. A server probed only from its
+  own machine looks open to every caller, and is not.
+- **`plex:claimed` fails against the only recording there is**, and the failure
+  is the check doing its job: the recording holds `claimed: false`. A recording
+  of a claimed server needs a plex.tv account, and none is held for this
+  repository. The proof format states what a healthy answer is and has no way to
+  state that a check is expected to fire on a recording, so `proofs` reports this
+  check as failed.
+- **An unclaimed server's operator holds no credential.** The `catalogue` probe
+  is recorded from the gateway, which is the whole of the standing an operator
+  has before the first-run flow.
 
-`prove.py` against the four recordings, verbatim but for the trailing detail:
+### What the reader says
 
-```
-  ok   proof  identity-before-claim         HTTP 200, and the body it declares
-  FAIL proof  catalogue-refuses-anonymous   status 200, and it declares 401
-  FAIL proof  accounts-refuses-anonymous    status 200, and it declares 401
-  FAIL probe  media.serve/guarded           status 200, and it declares 401
-  ???? probe  media.serve/catalogue         names …-operator.json, not in this source
-  ok   probe  identity.source/identifies    HTTP 200, and the body it declares
-  FAIL probe  identity.source/guarded       status 200, and it declares 401
-  ???? check  plex:claimed                  names …-claimed.json, not in this source
-  FAIL check  plex:no-anonymous-lan         status 200, and it declares 401
-  FAIL check  plex:not-published            MediaContainer is {…151 settings…}
-```
-
-Two pass. Read what they are: `identity-before-claim` and
-`identity.source/identifies` are the same call, and the only assertion the flat
-vocabulary let either of them make is `json_has_keys = ["MediaContainer"]`.
-**They pass by asserting that Plex replied.** The vocabulary asks a probe to
-show *which server this is*; what got written is *there is an envelope*. A
-green probe that establishes nothing is a worse outcome than a red one, and it
-is the outcome the flat vocabulary forces.
-
-The five `FAIL`s are honest and expected: unclaimed, Plex does not refuse
-anybody. The two `????` need a claimed server. And `plex:not-published`'s
-refusal printed all 151 settings into the message, which is a small separate
-point about a refusal nobody can read.
-
-That last one no longer asks the wrong question. It was written against a
-top-level `publishServerOnPlexOnlineKey` — lowercase, and not in the recording at
-all — so it could not have passed against any Plex. It now reads
-`/MediaContainer/Setting/[id=PublishServerOnPlexOnlineKey]/value`, which is where
-the setting is. Run against the same recording by the reader itself:
+`lemonfiber plugin claims .`, from the release `targets.toml` names, against the
+recordings — the verdicts, verbatim:
 
 ```
-plex:not-published — Plex is not publishing itself to the internet on its own
-  plex — the recording answers it
+What it can do
+  media.serve  [demonstrated]  on plex
+    probe guarded — the recording answers it
+    probe catalogue — the recording answers it
+  identity.source  [demonstrated]  on plex
+    probe identifies — the recording answers it
+    probe guarded — the recording answers it
+
+What must hold before it is installed
+  identity-before-claim — It says which server it is before anybody has claimed it
+    plex — the recording answers it
+  catalogue-refuses-anonymous — The catalogue refuses a caller presenting nothing from outside the private ranges
+    plex — the recording answers it
+  accounts-refuses-anonymous — It says nothing about who has an account here to a caller outside the private ranges
+    plex — the recording answers it
+
+What it would check, every day after
+  plex:claimed — Plex has an owner, so nobody else can become one
+    plex — refuted: /MediaContainer/claimed is false, and it declares true
+  plex:no-anonymous-lan — The catalogue still refuses a caller presenting nothing
+    plex — the recording answers it
+  plex:not-published — Plex is not publishing itself to the internet on its own
+    plex — the recording answers it
+  plex:libraries-match — Every Plex library points where the stack files that media type
+    plex — the recording answers it
 ```
 
-**That is the first assertion this plugin has made that passes on substance.**
-The two that passed before both said an envelope came back. This one reaches an
-entry of a 151-long array, finds it by the `id` it carries, and reads the value
-— which is the check the section above called unexpressible and said would need
-a predicate rather than a path.
+It refuses nothing about the manifest. It would not install it, because the
+plugin asks for `service.add`, `service.health.http` and `recipe.run` and that
+release offers a plugin `doctor.contribute` alone.
 
-Two other things came out of running the reader rather than the stand-in, both
-defects here rather than in it. The recordings named `plexinc/pms-docker@…`
-while the manifest pins `docker.io/plexinc/pms-docker@…`; same image, same
-digest, and the reader compares the strings, so every recording read as *taken
-from another build* — silently the worst outcome available, since it is the
-check that exists to catch exactly that drift. They are now spelled as the
-manifest pins them, which is what both published plugins already did. And the
-interim `prove.py` reports the pointer as unresolved, because the selector is
-the reader's and the stand-in does not implement it: one more line in the column
-of `reader_gate.py`'s argument that a stand-in's danger is not that it is weak
-but that it is quiet.
+Every assertion reaches the place it is about. `identifies` and
+`identity-before-claim` assert `/MediaContainer/machineIdentifier`, which is
+*which server this is*, rather than that an envelope came back.
+`plex:not-published` reads `/MediaContainer/Setting/[id=PublishServerOnPlexOnlineKey]/value`,
+one entry of a 151-long array found by the `id` it carries.
 
 ### Why this has never bitten
 
@@ -364,7 +378,7 @@ provides    = ["media.serve", "identity.source", "plex:direct-play"]
 
 **The second block is commented out in the draft manifest, because the schema
 refuses it.** `schema_version = 1` permits exactly one service, deliberately —
-`plugin-manifest.md:74`, enforced at `validate.py:1004`. So this is a proposal
+`plugin-manifest.md:74`. So this is a proposal
 against the contract rather than a declaration, and it is the clearest thing the
 exercise turned up: the showcase cannot show the shape it most wants to.
 
@@ -440,14 +454,12 @@ than merely large.
 | Probe | Credential | Required | The call |
 |---|---|---|---|
 | `guarded` | none | `401` or `403`, no body | `GET /library/sections`, `Accept: application/json` |
-| `catalogue` | operator | `200`, JSON with keys | `GET /library/sections`, `X-Plex-Token: …`, `Accept: application/json` |
+| `catalogue` | operator | `200`, JSON with keys | `GET /library/sections`, `Accept: application/json` |
 
-**The header in that table is the blocker.** Plex answers XML unless asked for
-JSON, and the `catalogue` probe permits only JSON body assertions — but
-`PluginRequest` has no `headers` field, so the ask cannot be written. The table
-above describes the calls Plex needs; the contract cannot currently carry two of
-them. See *The finding* above. What follows is what the probes would demonstrate
-once it can, and is the reason closing that gap is worth the work.
+Both are written with `accept`, which is what Plex needs to answer JSON. The
+`catalogue` probe is asked with the operator's credential because the vocabulary
+says so, not because its request does. For Plex that credential is a token sent
+as `X-Plex-Token`, and how the runner presents it is open question 0.
 
 **The `guarded` probe has real teeth here.** Plex has a setting — *List of IP
 addresses and networks that are allowed without auth* — which, when set to the
@@ -478,7 +490,9 @@ plugin could bind today, except that its assertion would have to reach
 vocabulary cannot do either. It returns `machineIdentifier` and `version` to an
 anonymous caller and nothing else. The vocabulary describes what it wants as *"which server this
 is — the part with nothing of the household's in it"*, and Plex has an endpoint
-that is precisely and only that. `GET /accounts` without a token is `401`.
+that is precisely and only that. Unclaimed, `GET /accounts` without a token is
+`401` to a device on the household network or off it, and `200` to the machine
+Plex runs on — *The finding*, measured.
 
 `identity.source` is declared by exactly one bundled service — `jellyfin` — which
 makes it the single most valuable place in the stack for substitution to be
@@ -555,8 +569,8 @@ value = "claim"
 to    = "plex"
 ```
 
-**Why this shape is worth having as the first real recipe.** The pair analysis in
-`validate.py` computes every flow a recipe *could* produce by reading it, and
+**Why this shape is worth having as the first real recipe.** The reader's pair
+analysis computes every flow a recipe *could* produce by reading it, and
 fails on any flow without a declared pair behind it. Every recipe written so far
 would make that analysis a check over an empty set. Here one captured value
 reaches two destinations, one of them a service this plugin did not install —
@@ -572,20 +586,26 @@ expiry is why it is asked for here rather than held.
 **The call outside the stack.** The claim exchange Plex performs on
 `POST /:/claim` is server-to-plex.tv, so the recipe itself does not name an
 external host. If the design later needs the token validated directly — `GET
-https://plex.tv/api/v2/user` — that step names `plex.tv`, which `validate.py`
+https://plex.tv/api/v2/user` — that step names `plex.tv`, which the reader
 accepts as a DNS name and would refuse as an address. **Open question 3.**
 
 ### `[[secret]]`
 
 ```toml
 [[secret]]
-id  = "plex-token"
+id  = "claim"
+of  = "plex"
+why = "Claiming the server is what makes it the household's rather than whoever reaches it first"
+
+[[secret]]
+id  = "plex_token"
 of  = "plex"
 why = "The request service signs the household in through Plex"
 ```
 
-`F3-R17` fails validation on a secret captured but not declared. Until now that
-rule has had nothing to refuse.
+`F3-R17` fails validation on a secret captured but not declared, and the reader
+matches a declaration to a capture by name: a `[[secret]]`'s `id` is the `name`
+its capture gives the value. The recipe captures two, so two are declared.
 
 ### `[[override]]`
 
@@ -593,10 +613,18 @@ rule has had nothing to refuse.
 [[override]]
 id  = "homepage.services.jellyfin"
 why = "The front door's Watch group points at Jellyfin, and after this install it is not what serves the library"
+
+[[override]]
+id  = "seerr.settings.plex"
+why = "The request service is told which Plex serves the library, and signs the household in through it"
 ```
 
-`F3-R18` fails validation on a bundled thing changed but not declared, and this is
-the first bundled thing any plugin has had cause to change. Note what it is *not*:
+`F3-R18` fails validation on a bundled thing changed but not declared. The reader
+holds a recipe's calls to it: a call that changes a service the stack ships needs
+an override whose id begins with that service's name, which is why
+`tell-the-request-service`'s `POST` to `seerr` is declared as
+`seerr.settings.plex`. The front door's entry is the other bundled thing this
+plugin changes. Note what it is *not*:
 it does not remove Jellyfin, stop it, or touch its data. It changes which service
 the front door's entry points at. Jellyfin keeps running unless the operator says
 otherwise, which is what makes the substitution reversible.
@@ -642,8 +670,8 @@ skipped it would install a Plex that was never claimed, never furnished, and
 never handed its token to anything — a plugin whose declared behaviour is wider
 than its actual one, which is the tolerated unknown `ARCH-R91` exists to refuse.
 
-`validate.py` already enforces the pairing: a manifest with a `[[recipe]]` and no
-`recipe.run` in `[requires]` fails today.
+The reader enforces the pairing: a manifest with a `[[recipe]]` and no
+`recipe.run` in `[requires]` is refused.
 
 ---
 
@@ -659,43 +687,32 @@ ability to *honour* a part of it.
 | `[plugin]`, `[[service]]`, `[[wiring]]`, `[requires]` | `F3` | shape accepted ✔ |
 | `[[recipe]]`, `[[secret]]`, `[[override]]` **declared** | the format already carries them | shape accepted ✔ |
 | `[[claim]]` for `identity.source` | `accept`, and a key that is a place | **shape accepted ✔** (`ARCH-R123`, `ARCH-R125`) |
-| `[[claim]]` for `media.serve` | a probe that may present a credential | blocked, and deliberately — see *What came of it* |
+| `[[claim]]` for `media.serve` | `accept`, and a key that is a place | **shape accepted ✔**; how the runner presents the token is open question 0 |
 | `[[proof]]` and `[[contribution]]` against Plex's own responses | the same two, plus the list selector | **shape accepted ✔** |
 | Substitution: seerr re-points with nothing edited | `F9` converts the wiring to ask | **0.17.0** |
 | `[[recipe]]`, `[[secret]]`, `[[override]]` **honoured** | `F8` | **0.18.0** |
 | A second service | nothing — `ARCH-R126` permits it and the reader reads it | **shape accepted ✔**, and a decision |
 
 "Shape accepted ✔" means the published schema accepts those blocks as written.
-Nothing here has been run against a Plex, and the two blocked rows are blocked
-by the contract rather than by this plugin: see *The finding* above. An earlier
-draft of this table claimed the claims were checked, on the word of the interim
-validator that `plugin-template#7` replaced — it permitted `headers` on a
-request, which the published schema does not. Re-checking against the generated
-schema is what turned the finding up, and is a small argument for `F10-R2`
-having been worth closing.
+The claims, proofs and checks run against recordings of the pinned image, never
+claimed; nothing here has been installed.
 
 ### The recordings are a finding of their own
 
 A fixture carries `recorded_from`, naming the image digest it was taken against.
 That is what makes `F10`'s promise — *you should not have to own a Plex server to
-write a plugin for Plex* — true for the second author and every author after.
+write a plugin for Plex* — true for every author.
 
-It is not true for the first. Somebody has to run this image once, against the
-four probes and the four contributed checks, and record what comes back. The
-fixtures in this repository are therefore **absent rather than approximated**: a
-recording with a plausible body and an invented `recorded_from` would be the one
-kind of wrong this whole apparatus is built to catch, and it would be sitting
-inside the apparatus.
+`.github/record.py` makes every recording in `fixtures/` by running that image,
+and the `recordings` job in CI makes them again on every pull request and fails
+where one differs from the committed file in anything but the values Plex makes
+up for each instance: its machine identifier, the library's `uuid` and
+timestamps. No recording is written by hand.
 
-So `just manifest` fails here today: once per missing recording, and again for
-each request the contract cannot carry. Both are the correct state for it to be
-in.
-
-That ordering is the argument for specifying the whole thing now rather than the
-runnable part of it. A conformance example written one release at a time gets
-shaped by what each release happened to make easy. Written whole, it is a standing
-test of whether `F9` and `F8` landed as specified — and the day `plugin-plex`'s
-`just ci` goes green without its manifest changing is the day both did.
+It records an unclaimed server, because claiming needs a plex.tv account and
+none is held for this repository. So `plex:claimed` has no recording of the
+answer it passes on, and `just proofs` reports it failed against the recording
+of the answer it exists to catch.
 
 ---
 
@@ -714,9 +731,15 @@ research task. The first is new, and it outranks the rest.
 
    What it did **not** answer, and the successor to this question: **how does a
    probe present a credential without a `guarded` probe silently gaining the
-   ability to?** `media.serve`'s `catalogue` probe is blocked on it, and the
-   reason `accept` stopped short of a header map is that nobody has an answer
-   that keeps *asked as nobody* checkable by the form rather than by a reviewer.
+   ability to?** `media.serve`'s `catalogue` probe is written with `accept` alone
+   and carries `credential: operator` from the vocabulary, so the manifest
+   never names the credential. What is open is how the runner presents it: Plex
+   reads its token from an `X-Plex-Token` header, the token is the `plex-token`
+   secret the first-run flow captures, and nothing in the format says which
+   header a secret is presented in. That is `F8`'s to answer, together with how
+   a recipe's captured secret reaches a probe. The reason `accept` stopped
+   short of a header map is that nobody has an answer that keeps *asked as
+   nobody* checkable by the form rather than by a reviewer.
 
 1. **Does `F2`'s open-source constraint bind a plugin?** `f2-service-catalogue.md`
    excludes Plex from the *bundled* catalogue for not being open source. If that
@@ -749,9 +772,10 @@ research task. The first is new, and it outranks the rest.
    a question for the contract: whether the reader installs two, and whether this
    plugin's Tautulli is worth being the first to ask it to.
 
-5. **Who records the first fixtures?** Someone with a Plex server, once. Until
-   then this repository is a specification with a manifest beside it, and
-   `just ci` is red for the right reason.
+5. **Who records a claimed server?** `.github/record.py` records every fixture
+   off the pinned image, unclaimed. A recording of a claimed server needs a
+   plex.tv account, and none is held for this repository, so `plex:claimed` is
+   proved only against the answer it exists to catch.
 
 ---
 

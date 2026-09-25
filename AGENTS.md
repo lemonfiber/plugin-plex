@@ -12,30 +12,29 @@ Plex as a lemonfiber plugin, and **the repository that demonstrates a gap in the
 plugin contract rather than working around it**. Read [SPEC.md](SPEC.md) before
 changing `plugin.toml`; the headline section is not background.
 
-The short version, as it now stands: a probe **can** ask for JSON (`accept`), an
-expectation **can** reach into a `MediaContainer`, and the setting that matters —
-one of 151, in a list whose order nobody promised — is reachable by the `id` it
-carries rather than by an index. What Plex still cannot do is present a
-credential: `media.serve`'s `catalogue` probe has to, and there is no field for
-one, deliberately.
+The short version, as it stands: a probe asks for JSON (`accept`), an
+expectation reaches into a `MediaContainer`, and the setting that matters — one
+of 151, in a list whose order nobody promised — is reachable by the `id` it
+carries rather than by an index. `media.serve`'s `catalogue` probe names no
+credential: the vocabulary says it is asked with the operator's, and how the
+runner presents a Plex token is open question 0 in `SPEC.md`.
 
-So the manifest here is still written as Plex actually needs it, refused probe
-and all, because a manifest edited until the gate went quiet would hide the
-finding this repository exists to produce. **Do not make `lemonfiber plugin
-claims` pass by editing that probe.** If it ever passes, it is because the
-contract changed, and `SPEC.md` § *The finding* is where that is recorded.
+Every file in `fixtures/` is written by `.github/record.py` off the pinned image,
+never claimed, because claiming needs a plex.tv account and none is held for this
+repository. **Never write or edit a recording by hand**; run `just record`, and
+`just recordings` (the `recordings` CI job) checks the committed ones against a
+fresh run.
 
-`.github/interim/` is a **copy** of the harness whose canonical home is
+`.github/reader/` is a **copy** of the harness whose canonical home is
 `plugin-template`. The `harness` job compares the two byte for byte, so it is
-changed there and copied here, never the other way round. Re-fetch before
-touching it: this copy has already been two merges stale once.
+changed there and copied here, never the other way round.
 
 ## The rules you cannot break
 
 - **Nothing here executes.** A plugin is declarative data (`F3-R1`), and
   contributed code is never run, under any opt-in (`F3-R6`). The Python under
-  `.github/interim/` is CI harness, is not part of what an operator installs,
-  and is deleted when lemonfiber's own verbs replace it.
+  `.github/reader/` is CI harness and is not part of what an operator installs:
+  it fetches the lemonfiber release `targets.toml` names and asks it.
 - **The plugin is `plugin.toml` and `fixtures/`.** Proofs, claims and
   contributions live in the manifest, not beside it: an installer reads one file,
   and something the installer never reads cannot be what `F3-R4` refuses an
@@ -50,17 +49,9 @@ touching it: this copy has already been two merges stale once.
 - **No field beyond the contract's set.** A manifest carrying one is refused by
   name rather than ignored (`ARCH-R84`).
 - **The format is lemonfiber's to describe, and nothing here describes it.**
-  `validate.py` must never carry a list of tables, fields, kinds, closed sets or
-  capability names — `F10-R2` forbids a second, hand-maintained description of
-  the format, and the one that used to live here had drifted from the parser in
-  seven places by the time it was removed. What a manifest may contain is the
-  generated schema's to say; rules that need it, or the vocabulary, or the
-  points, are skipped and **named as skipped**, and `published_gate.py` fetches
-  all three and decides them.
-- **A rule here must be one lemonfiber holds a manifest to.** Being weaker than
-  the binary is what a stand-in is. Refusing something lemonfiber accepts is the
-  defect, because an author then changes a manifest for no reason and the change
-  is invisible to everybody else. Check the reader before adding a rule.
+  `reader.py` carries no list of tables, fields, kinds, closed sets or capability
+  names, and decides no verdict: `F10-R2` forbids a second description of the
+  format, and every verdict CI reports is `lemonfiber plugin claims`'s own.
 
 ## Checks
 
@@ -73,24 +64,21 @@ it leaves out are named in the `justfile` beside the recipe, with what covers
 each. `just` lists the recipes it is made of.
 
 `proofs.json` is generated and committed; CI fails when the committed one is not
-what the run would write. `prove.py` writes it only when given
-`--report proofs.json`, which is why the recipe passes the flag.
+what the run would write. `reader.py proofs` writes it on every run.
 
-### Three jobs are red here, on purpose
+### `proofs` is red here, on one check
 
-`manifest`, `proofs` and `reader` fail on every pull request in this repository,
-and that is the finding rather than a break. They are the jobs that hold
-`plugin.toml` to the published schema, and the manifest deliberately carries what
-the schema refuses — see [SPEC.md](SPEC.md) § *The finding*.
+`proofs` fails on `plex:claimed`. Its only recording is of a server nobody has
+claimed, which holds `claimed: false` — the answer the check exists to catch —
+and the format has no way to state that a check is expected to fail on a
+recording. Every other probe, proof and check passes. `SPEC.md` § *The finding*
+has what was measured.
 
-So they are **deliberately absent from `main`'s required contexts**. The other
-fifteen are required, `strict` and `enforce_admins` are on, and the three go back
-in the day the contract can express a Plex claim. If you are here because that
-gap looks like an oversight and you are about to add them: adding them locks this
-repository, because nothing can pass them until `spec#458` lands.
+`manifest`, `proofs`, `reader`, `recordings` and `harness` are not among
+`main`'s required contexts.
 
-Do not make the manifest pass by trimming it. That is the one change this
-repository cannot accept.
+Do not make `proofs` pass by pointing `plex:claimed` at something else or by
+trimming it. That is the one change this repository cannot accept.
 
 ## Before you open a PR
 

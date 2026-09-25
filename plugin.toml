@@ -3,11 +3,10 @@
 # Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md
 # Specification: SPEC.md, beside this file.
 #
-# DRAFT. The digest and tag are real and the fixtures are a real run of that
-# image; the recipe has nothing to run it until F8 lands in 0.18.0. What this
-# file is for now is to hold SPEC.md to something checkable — and it has
-# already refused two of the four probes, which is the finding rather than a
-# defect in the file. SPEC.md § The finding.
+# DRAFT. The digest and tag are real, and every file in fixtures/ is written by
+# `.github/record.py` off that image, never claimed; the recipe has nothing to
+# run it until F8 lands in 0.18.0. What this file is for now is to hold SPEC.md
+# to something checkable. SPEC.md § The finding.
 #
 # Everything lemonfiber does on this plugin's behalf comes from this file, and it
 # knows nothing about the plugin that is not declared here (ARCH-R83). Nothing in
@@ -61,34 +60,19 @@ provides = ["media.serve", "identity.source", "plex:direct-play"]
 
 # ─── Claims ──────────────────────────────────────────────────────────────────
 #
-# Two core capabilities and four probes between them. None of the recordings
-# exists yet: a fixture names the image digest it was taken against, and one
-# invented here would be the single kind of wrong this apparatus is built to
-# catch, sitting inside the apparatus. `just manifest` is red until somebody
-# with a Plex server records them once — SPEC.md § The recordings.
+# Two core capabilities and four probes between them, each bound to a recording
+# of the pinned image. The server is never claimed, because claiming needs a
+# plex.tv account and none is held for this repository, so a recording says
+# where it was asked from. An unclaimed Plex refuses every device that asks
+# presenting nothing, on the household network or off it, except the machine it
+# runs on, which it sees arrive from its gateway. SPEC.md § The finding.
 #
-# TWO OF THE THREE REFUSALS THIS FILE REPORTED ARE ANSWERED. The third is not,
-# and it is the one worth having.
-#
-# Answered: a request may name the representation it asks for (`accept`,
-# ARCH-R123), which is what Plex needs and had no field for — it answers XML at
-# every path, including the one its own health probe uses, unless asked
-# otherwise. And an expectation's key is now a place rather than a top-level
-# name (ARCH-R125), so `/MediaContainer/claimed` reaches what this service
-# actually nests. Note what the old spelling was: `MediaContainer.size` was not
-# a path with a dot in it, it was a request for a top-level member literally so
-# named, which Plex does not return and never did.
-#
-# Not answered, and deliberately: `catalogue` below still asks with an
-# `X-Plex-Token`, and there is no field for it. `PluginRequest` grants one media
-# type rather than a header map, so that *asked as nobody* stays a property of
-# the form — any service may name its credential header whatever it likes, so no
-# list of refused names could ever be closed, and `none` on every `guarded`
-# probe has meant what it says partly because nothing could be presented.
-#
-# It is left as Plex actually needs it rather than trimmed to what validates,
-# because a manifest edited until the gate went quiet would hide the finding this
-# plugin exists to produce. SPEC.md § The finding.
+# `catalogue` is asked with the operator's credential, and the vocabulary says so
+# rather than the request: a request names the one representation it asks for
+# (`accept`, ARCH-R123) and nothing else. How lemonfiber presents a Plex token
+# when it asks is open question 0 in SPEC.md. Unclaimed, the operator holds no
+# token, and the recording is the catalogue as the machine Plex runs on is
+# given it.
 
 [[claim]]
 capability = "media.serve"
@@ -101,9 +85,9 @@ fixture = "fixtures/library-sections-anonymous.json"
 
 [[claim.probe]]
 id      = "catalogue"
-request = { method = "GET", path = "/library/sections", headers = { Accept = "application/json", "X-Plex-Token" = "{{operator}}" } }
-expect  = { status = 200, json_has_keys = ["MediaContainer"] }
-fixture = "fixtures/library-sections-operator.json"
+request = { method = "GET", path = "/library/sections", accept = "application/json" }
+expect  = { status = 200, json_has_keys = ["/MediaContainer/size"] }
+fixture = "fixtures/library-sections-host.json"
 
 [[claim]]
 capability = "identity.source"
@@ -111,7 +95,7 @@ capability = "identity.source"
 [[claim.probe]]
 id      = "identifies"
 request = { method = "GET", path = "/identity", accept = "application/json" }
-expect  = { status = 200, json_has_keys = ["MediaContainer"] }
+expect  = { status = 200, json_has_keys = ["/MediaContainer/machineIdentifier"] }
 fixture = "fixtures/identity-anonymous.json"
 
 [[claim.probe]]
@@ -188,14 +172,25 @@ to    = "seerr"
 
 # ─── What is held, and what bundled thing changes ────────────────────────────
 
+# One declaration per value the first-run flow holds, named as the capture names
+# it: the claim code the operator types, and the token Plex hands back.
 [[secret]]
-id  = "plex-token"
+id  = "claim"
+of  = "plex"
+why = "Claiming the server is what makes it the household's rather than whoever reaches it first"
+
+[[secret]]
+id  = "plex_token"
 of  = "plex"
 why = "The request service signs the household in through Plex"
 
 [[override]]
 id  = "homepage.services.jellyfin"
 why = "The front door's Watch group points at Jellyfin, and after this install it is not what serves the library"
+
+[[override]]
+id  = "seerr.settings.plex"
+why = "The request service is told which Plex serves the library, and signs the household in through it"
 
 # Note what the override is not: it does not remove Jellyfin, stop it, or touch
 # its data. It changes which service one front-door entry points at, which is
@@ -210,9 +205,13 @@ title     = "Plex has an owner, so nobody else can become one"
 category  = "services"
 request   = { method = "GET", path = "/identity", accept = "application/json" }
 expect    = { status = 200, json = { "/MediaContainer/claimed" = true } }
-fixture   = "fixtures/identity-claimed.json"
+fixture   = "fixtures/identity-anonymous.json"
 timeout_s = 10
 why       = "An unclaimed Plex server hands ownership to whoever reaches it first."
+# The one recording there is comes from a server nobody has claimed, so this
+# check fails against it, and that failure is the check doing its job: the
+# recording holds `claimed: false`. A recording of a claimed server needs a
+# plex.tv account. SPEC.md § The finding.
 
 [[contribution]]
 at     = "doctor.remedy"
@@ -271,7 +270,7 @@ title     = "Every Plex library points where the stack files that media type"
 category  = "storage"
 request   = { method = "GET", path = "/library/sections", accept = "application/json" }
 expect    = { status = 200, json_at_least = { "/MediaContainer/size" = 1 } }
-fixture   = "fixtures/library-sections-operator.json"
+fixture   = "fixtures/library-sections-host.json"
 timeout_s = 10
 why       = "A Plex library scanning the wrong directory files nothing, throws nothing, and shows an empty shelf for a media type the stack is still acquiring into."
 
@@ -304,20 +303,20 @@ title   = "It says which server it is before anybody has claimed it"
 fixture = "fixtures/identity-anonymous.json"
 why     = "Something has to be answerable before authentication or nothing could ever authenticate, and this is the part with nothing of the household's in it."
 request = { method = "GET", path = "/identity", accept = "application/json" }
-expect  = { status = 200, json_has_keys = ["MediaContainer"] }
+expect  = { status = 200, json_has_keys = ["/MediaContainer/machineIdentifier"], json_types = { "/MediaContainer/claimed" = "bool" } }
 
 [[proof]]
 id      = "catalogue-refuses-anonymous"
-title   = "The catalogue refuses a caller presenting nothing"
-fixture = "fixtures/library-sections-anonymous.json"
-why     = "A proof reading only a status here would pass against a build with no library at all; this asserts the body Plex actually returns."
+title   = "The catalogue refuses a caller presenting nothing from outside the private ranges"
+fixture = "fixtures/library-sections-anonymous-outside.json"
+why     = "The `guarded` probe is recorded from a device on the household network; this is the same refusal from a device off it, so the probe's pass is not a fact about one address. The body is asserted because it is Plex's own refusal page rather than a proxy's."
 request = { method = "GET", path = "/library/sections", accept = "application/json" }
-expect  = { status = 401, json_has_keys = ["errors"] }
+expect  = { status = 401, content_type = "text/html", body_starts_with = "<html><head><title>Unauthorized</title>" }
 
 [[proof]]
 id      = "accounts-refuses-anonymous"
-title   = "It says nothing about who has an account here"
-fixture = "fixtures/accounts-anonymous.json"
+title   = "It says nothing about who has an account here to a caller outside the private ranges"
+fixture = "fixtures/accounts-anonymous-outside.json"
 why     = "The line between this and the identity proof is the whole of identity.source: which server, to anybody; who is on it, to nobody."
 request = { method = "GET", path = "/accounts", accept = "application/json" }
-expect  = { status = 401, json_has_keys = ["errors"] }
+expect  = { status = 401, content_type = "text/html", body_starts_with = "<html><head><title>Unauthorized</title>" }

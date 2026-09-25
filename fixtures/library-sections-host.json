@@ -1,0 +1,50 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "A fresh instance of this image, never claimed: no plex.tv account and no token. This is what an operator's Plex answers between install and the first-run flow, to a caller presenting nothing. Asked from the machine Docker runs on, through a published port, which Plex logged as its network's gateway. The catalogue, with one library pointed at /data/movies. Unclaimed, Plex admits a caller it sees arrive from its gateway, which is how Docker delivers a request the machine it runs on makes through a published port. That is the whole of the standing an unclaimed server's operator has.",
+  "request": {
+    "method": "GET",
+    "path": "/library/sections",
+    "accept": "application/json"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "json": {
+      "MediaContainer": {
+        "size": 1,
+        "allowSync": false,
+        "title1": "Plex Library",
+        "Directory": [
+          {
+            "allowSync": false,
+            "filters": true,
+            "refreshing": false,
+            "key": "1",
+            "type": "movie",
+            "title": "Movies",
+            "agent": "tv.plex.agents.movie",
+            "scanner": "Plex Movie",
+            "language": "en-US",
+            "metadataAgentProviderGroupId": 1,
+            "uuid": "2ab3cce9-b22c-4793-8214-538340b9643d",
+            "updatedAt": 1790337404,
+            "createdAt": 1790337404,
+            "scannedAt": 1790337404,
+            "content": true,
+            "directory": true,
+            "contentChangedAt": -1,
+            "hidden": 0,
+            "Location": [
+              {
+                "id": 1,
+                "path": "/data/movies"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

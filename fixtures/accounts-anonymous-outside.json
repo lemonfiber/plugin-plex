@@ -1,6 +1,6 @@
 {
   "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
-  "note": "A fresh instance of this image, never claimed: no plex.tv account and no token. This is what an operator's Plex answers between install and the first-run flow, to a caller presenting nothing. Asked from another device on the server's own private network, 10.232.0.0/24. The account list refuses a device on the household network, with an HTML page rather than a document.",
+  "note": "A fresh instance of this image, never claimed: no plex.tv account and no token. This is what an operator's Plex answers between install and the first-run flow, to a caller presenting nothing. Asked from a device outside the private address ranges, on 100.100.0.0/24, a network the server is attached to directly. The account list refuses a device outside the private ranges exactly as it refuses one inside them.",
   "request": {
     "method": "GET",
     "path": "/accounts",

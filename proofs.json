@@ -1,72 +1,72 @@
 {
-  "lemonfiber": null,
-  "against": "fixtures",
+  "lemonfiber": "0.16.0",
+  "against": "recordings",
   "proofs": [
     {
       "id": "identity-before-claim",
       "kind": "proof",
       "outcome": "passed",
-      "detail": "HTTP 200, and the body it declares"
+      "detail": ""
     },
     {
       "id": "catalogue-refuses-anonymous",
       "kind": "proof",
-      "outcome": "fail",
-      "detail": "status 200, and it declares 401; the body carries no 'errors'"
+      "outcome": "passed",
+      "detail": ""
     },
     {
       "id": "accounts-refuses-anonymous",
       "kind": "proof",
-      "outcome": "fail",
-      "detail": "status 200, and it declares 401; the body carries no 'errors'"
+      "outcome": "passed",
+      "detail": ""
     },
     {
       "id": "media.serve/guarded",
       "kind": "probe",
-      "outcome": "fail",
-      "detail": "status 200, and it declares 401"
+      "outcome": "passed",
+      "detail": ""
     },
     {
       "id": "media.serve/catalogue",
       "kind": "probe",
-      "outcome": "unproven",
-      "detail": "names fixtures/library-sections-operator.json, which is not in this source"
+      "outcome": "passed",
+      "detail": ""
     },
     {
       "id": "identity.source/identifies",
       "kind": "probe",
       "outcome": "passed",
-      "detail": "HTTP 200, and the body it declares"
+      "detail": ""
     },
     {
       "id": "identity.source/guarded",
       "kind": "probe",
-      "outcome": "fail",
-      "detail": "status 200, and it declares 401"
+      "outcome": "passed",
+      "detail": ""
     },
     {
       "id": "plex:claimed",
       "kind": "check",
-      "outcome": "unproven",
-      "detail": "names fixtures/identity-claimed.json, which is not in this source"
+      "outcome": "failed",
+      "detail": "/MediaContainer/claimed is false, and it declares true"
     },
     {
       "id": "plex:no-anonymous-lan",
       "kind": "check",
-      "outcome": "fail",
-      "detail": "status 200, and it declares 401"
+      "outcome": "passed",
+      "detail": ""
     },
     {
       "id": "plex:not-published",
       "kind": "check",
-      "outcome": "fail",
-      "detail": "/MediaContainer/Setting/[id=PublishServerOnPlexOnlineKey]/value is None, and it declares False"
+      "outcome": "passed",
+      "detail": ""
     },
     {
       "id": "plex:libraries-match",
       "kind": "check",
-      "outcome": "unproven",
-      "detail": "names fixtures/library-sections-operator.json, which is not in this source"
+      "outcome": "passed",
+      "detail": ""
     }
   ]
 }

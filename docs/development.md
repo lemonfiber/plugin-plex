@@ -16,25 +16,25 @@ setting, and runs a first-run flow.
 
 ## Where the manifest stands
 
-`plugin.toml` is written and is run against lemonfiber's **published schema** on
-every CI run. It is refused, for these reasons:
+Every CI run asks `lemonfiber plugin claims` of the release `targets.toml` names,
+and it refuses nothing about the manifest. It would not install it: the plugin
+asks for `service.add`, `service.health.http` and `recipe.run`, and that release
+offers a plugin `doctor.contribute` alone.
 
-- **`media.serve`'s `catalogue` probe cannot be written.** It has to present a
-  credential, and a probe's request has no field for one. The manifest carries a
-  `headers` table on that probe, which the schema refuses. A request may name the
-  one representation it asks for, as `accept` (`ARCH-R123`); `accept` is one
-  media type and not a header map, so *asked as nobody* stays a property of the
-  form, since any service may name its credential header whatever it likes and no
-  list of refused names could be closed. How a probe presents a credential
-  without a `guarded` probe gaining the ability to is open question 0 in
+- **Every recording is made by running the image.** `.github/record.py` starts
+  the image `plugin.toml` pins, never claimed, and writes every file in
+  `fixtures/`, each asked from where its `note` says. `just record` runs it;
+  `just recordings` and the `recordings` CI job run it again and compare with
+  what is committed. Both need Docker.
+- **`plex:claimed` fails against its recording.** The server is never claimed,
+  because claiming needs a plex.tv account and none is held for this
+  repository, so the recording holds `claimed: false`, which is the answer the
+  check exists to catch. `just proofs` reports it failed, and every other
+  proof, probe and check passes.
+- **`media.serve`'s `catalogue` probe names no credential.** Its request is
+  `accept` alone; the vocabulary says it is asked with the operator's
+  credential, and how the runner presents a Plex token is open question 0 in
   SPEC.md.
-- **Recordings are missing.** `fixtures/` holds four recordings off the pinned
-  image. The manifest also names `fixtures/library-sections-operator.json` and
-  `fixtures/identity-claimed.json`, which are not here: they need a claimed
-  server, and a fixture names the image digest it was taken against, so neither
-  can be written without running one.
-- **It asks for `recipe.run`**, which lemonfiber does not offer, so an install is
-  refused naming that capability.
 
 Two rules this plugin needed are in the contract:
 
@@ -58,7 +58,7 @@ The open questions are at the end of SPEC.md.
 just ci        # every gate CI runs over this repository, in CI's order
 ```
 
-`just manifest` is red, for the reasons above. `just` lists the recipes `ci` is
+`just proofs` is red, for the reason above. `just` lists the recipes `ci` is
 made of, and the CI jobs it does not run are named in the `justfile` beside the
 recipe. Rules for working in this repository are in [AGENTS.md](../AGENTS.md).
 
