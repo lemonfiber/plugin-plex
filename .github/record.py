@@ -52,6 +52,9 @@ MANIFEST = "plugin.toml"
 PORT = 32400
 ACCEPT = "application/json"
 STARTUP_S = 300
+# How many answers in a row `/identity` must carry no `startState` for Plex to
+# count as started, two seconds apart.
+SETTLED = 10
 # The most of a body that is not a document a recording keeps, the same as
 # `prove.py` keeps of a live answer.
 KEPT = 200
@@ -189,8 +192,14 @@ class Instance:
         return ""
 
     def started(self) -> None:
-        """Wait until Plex has finished starting, not merely begun answering."""
+        """Wait until Plex has finished starting, not merely begun answering.
+
+        `/identity` carries a `startState` while Plex is starting, and it comes
+        back for a while after a library is made, so finished means absent on
+        `SETTLED` answers in a row.
+        """
         deadline = time.monotonic() + STARTUP_S
+        quiet = 0
         while time.monotonic() < deadline:
             try:
                 answer = self.ask("host", "GET", "/identity")
@@ -198,7 +207,11 @@ class Instance:
                 answer = {}
             body = answer.get("json") or {}
             if answer.get("status") == 200 and "startState" not in body.get("MediaContainer", {}):
-                return
+                quiet += 1
+                if quiet >= SETTLED:
+                    return
+            else:
+                quiet = 0
             time.sleep(2)
         raise RuntimeError(f"Plex had not finished starting after {STARTUP_S}s")
 
@@ -254,6 +267,7 @@ def record(into: pathlib.Path) -> None:
     with Instance(image) as plex:
         plex.started()
         plex.furnished()
+        plex.started()
         for name, where, path, why in RECORDINGS:
             answer = plex.ask(where, "GET", path)
             logged, expected = plex.logged_caller("GET", path), plex.expected_caller(where)
