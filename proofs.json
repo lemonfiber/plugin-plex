@@ -11,26 +11,26 @@
     {
       "id": "catalogue-refuses-anonymous",
       "kind": "proof",
-      "outcome": "fail",
-      "detail": "status 200, and it declares 401; the body carries no 'errors'"
+      "outcome": "passed",
+      "detail": "HTTP 401, and the body it declares"
     },
     {
       "id": "accounts-refuses-anonymous",
       "kind": "proof",
-      "outcome": "fail",
-      "detail": "status 200, and it declares 401; the body carries no 'errors'"
+      "outcome": "passed",
+      "detail": "HTTP 401, and the body it declares"
     },
     {
       "id": "media.serve/guarded",
       "kind": "probe",
-      "outcome": "fail",
-      "detail": "status 200, and it declares 401"
+      "outcome": "passed",
+      "detail": "HTTP 401, and the body it declares"
     },
     {
       "id": "media.serve/catalogue",
       "kind": "probe",
-      "outcome": "unproven",
-      "detail": "names fixtures/library-sections-operator.json, which is not in this source"
+      "outcome": "passed",
+      "detail": "HTTP 200, and the body it declares"
     },
     {
       "id": "identity.source/identifies",
@@ -41,32 +41,32 @@
     {
       "id": "identity.source/guarded",
       "kind": "probe",
-      "outcome": "fail",
-      "detail": "status 200, and it declares 401"
+      "outcome": "passed",
+      "detail": "HTTP 401, and the body it declares"
     },
     {
       "id": "plex:claimed",
       "kind": "check",
-      "outcome": "unproven",
-      "detail": "names fixtures/identity-claimed.json, which is not in this source"
+      "outcome": "fail",
+      "detail": "/MediaContainer/claimed is false, and it declares true"
     },
     {
       "id": "plex:no-anonymous-lan",
       "kind": "check",
-      "outcome": "fail",
-      "detail": "status 200, and it declares 401"
+      "outcome": "passed",
+      "detail": "HTTP 401, and the body it declares"
     },
     {
       "id": "plex:not-published",
       "kind": "check",
-      "outcome": "fail",
-      "detail": "/MediaContainer/Setting/[id=PublishServerOnPlexOnlineKey]/value is None, and it declares False"
+      "outcome": "passed",
+      "detail": "HTTP 200, and the body it declares"
     },
     {
       "id": "plex:libraries-match",
       "kind": "check",
-      "outcome": "unproven",
-      "detail": "names fixtures/library-sections-operator.json, which is not in this source"
+      "outcome": "passed",
+      "detail": "HTTP 200, and the body it declares"
     }
   ]
 }

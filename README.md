@@ -1,14 +1,8 @@
 # Plex for lemonfiber
 
-**This plugin cannot be installed.** lemonfiber refuses its manifest, for two
-reasons:
-
-- **It needs something lemonfiber does not offer.** It asks for `recipe.run`,
-  the ability to run a first-run flow against a service, and lemonfiber does not
-  offer it.
-- **It does not conform to the plugin format.** One of the questions it asks Plex sends a
-  request header, which the format has no field for, and it names recorded
-  responses that are not in this repository.
+**This plugin cannot be installed.** It asks for `recipe.run`, the ability to
+run a first-run flow against a service, and lemonfiber does not offer it, so
+lemonfiber refuses the install by naming that capability.
 
 It is not in the [lemonfiber plugin catalogue](https://github.com/lemonfiber/lemonfiber-plugins),
 and this repository has no instructions for installing it.

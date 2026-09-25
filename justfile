@@ -37,7 +37,7 @@ hooks:
 #                                              a manifest
 #
 # Every gate CI runs over this repository's contents — not the whole of CI.
-ci: hooks manifest proofs image reader typos links
+ci: hooks manifest proofs recordings image reader typos links
 
 # The stand-in refuses what it exists to refuse, then the manifest against
 # everything lemonfiber publishes: the generated schema, the capability
@@ -65,6 +65,19 @@ manifest:
 proofs:
     python3 .github/interim/prove.py --against fixtures --report proofs.json
     git diff --exit-code -- proofs.json
+
+# Write every file in fixtures/ off the image plugin.toml pins, never claimed,
+# each asked from where its note says. Needs Docker.
+#
+# Every recording in fixtures/, written off the pinned image.
+record:
+    python3 .github/record.py
+
+# Record again and compare with what is committed, as CI does. Needs Docker.
+#
+# The recordings are what the pinned image answers now.
+recordings:
+    python3 .github/record.py --check
 
 # The declared digest is in the registry, the tag beside it still names it, and
 # whether anything signed it.

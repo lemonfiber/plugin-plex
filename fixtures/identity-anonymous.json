@@ -1,6 +1,6 @@
 {
   "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
-  "note": "A fresh instance of this image, started and left alone: no claim token, no account, no library. This is what an operator's Plex answers between install and the first-run flow. Public server information. The one call here that needs no credential by design.",
+  "note": "A fresh instance of this image, never claimed: no plex.tv account and no token. This is what an operator's Plex answers between install and the first-run flow, to a caller presenting nothing. Asked from another device on the server's own private network, 10.232.0.0/24. Public server information, answered to every caller. `claimed` is false, which is the answer `plex:claimed` exists to catch.",
   "request": {
     "method": "GET",
     "path": "/identity",
@@ -16,8 +16,7 @@
         "size": 0,
         "apiVersion": "1.2.3",
         "claimed": false,
-        "machineIdentifier": "1b9acc58f53caf06035f007868312938dd9717b8",
-        "startState": "startingPlugins",
+        "machineIdentifier": "e4d0a0411f24c5cf5cc661beaeb5da6841dc8bc2",
         "version": "1.43.4.10903-e5521bd8c"
       }
     }

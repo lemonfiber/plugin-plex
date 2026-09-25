@@ -79,6 +79,23 @@ jobs:
           the committed file against what this run produced (F3-R5)."
           exit 1
 
+  # Every recording in fixtures/ is what the pinned image answers now. It starts
+  # the image, never claimed, asks each question from where the recording says
+  # it was asked, and fails where the answer differs in anything but the values
+  # Plex makes up for each instance. A recording nobody can reproduce is one
+  # nobody can tell from an invented one (F10-R4).
+  recordings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: The recordings, against the image they name
+        run: python3 .github/record.py --check
+
   # The declared digest is in the registry, the tag beside it still names it,
   # and whether anything signed it — reported as unproven where nothing did,
   # never as verified (F3-R25).
