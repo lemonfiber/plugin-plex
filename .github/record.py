@@ -291,6 +291,17 @@ def masked(document: dict, name: str) -> dict:
     return document
 
 
+def apart(ours: object, theirs: object, at: str = "") -> list[str]:
+    """Every place two recordings hold different things, as a pointer."""
+    if isinstance(ours, dict) and isinstance(theirs, dict):
+        return [place for key in ours.keys() | theirs.keys()
+                for place in apart(ours.get(key), theirs.get(key), f"{at}/{key}")]
+    if isinstance(ours, list) and isinstance(theirs, list) and len(ours) == len(theirs):
+        return [place for index, (one, other) in enumerate(zip(ours, theirs, strict=True))
+                for place in apart(one, other, f"{at}/{index}")]
+    return [] if ours == theirs else [at or "/"]
+
+
 def check() -> int:
     with tempfile.TemporaryDirectory() as scratch:
         fresh = pathlib.Path(scratch)
@@ -304,7 +315,8 @@ def check() -> int:
             ours = masked(json.loads(committed.read_text(encoding="utf-8")), name)
             theirs = masked(json.loads((fresh / name).read_text(encoding="utf-8")), name)
             if ours != theirs:
-                differ.append(f"fixtures/{name} is not what the pinned image answers now")
+                places = ", ".join(sorted(apart(ours, theirs))[:10])
+                differ.append(f"fixtures/{name} is not what the pinned image answers now, at {places}")
     for line in differ:
         print(f"::error::{line}. Run `python3 .github/record.py` and commit fixtures/.")
     return 1 if differ else 0
