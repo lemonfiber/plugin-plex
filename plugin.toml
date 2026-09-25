@@ -172,14 +172,25 @@ to    = "seerr"
 
 # ─── What is held, and what bundled thing changes ────────────────────────────
 
+# One declaration per value the first-run flow holds, named as the capture names
+# it: the claim code the operator types, and the token Plex hands back.
 [[secret]]
-id  = "plex-token"
+id  = "claim"
+of  = "plex"
+why = "Claiming the server is what makes it the household's rather than whoever reaches it first"
+
+[[secret]]
+id  = "plex_token"
 of  = "plex"
 why = "The request service signs the household in through Plex"
 
 [[override]]
 id  = "homepage.services.jellyfin"
 why = "The front door's Watch group points at Jellyfin, and after this install it is not what serves the library"
+
+[[override]]
+id  = "seerr.settings.plex"
+why = "The request service is told which Plex serves the library, and signs the household in through it"
 
 # Note what the override is not: it does not remove Jellyfin, stop it, or touch
 # its data. It changes which service one front-door entry points at, which is

@@ -188,23 +188,42 @@ What that means here:
   is recorded from the gateway, which is the whole of the standing an operator
   has before the first-run flow.
 
-### What the runner actually says
+### What the reader says
 
-`prove.py` against the recordings, verbatim:
+`lemonfiber plugin claims .`, from the release `targets.toml` names, against the
+recordings — the verdicts, verbatim:
 
 ```
-  ok   proof  identity-before-claim              HTTP 200, and the body it declares
-  ok   proof  catalogue-refuses-anonymous        HTTP 401, and the body it declares
-  ok   proof  accounts-refuses-anonymous         HTTP 401, and the body it declares
-  ok   probe  media.serve/guarded                HTTP 401, and the body it declares
-  ok   probe  media.serve/catalogue              HTTP 200, and the body it declares
-  ok   probe  identity.source/identifies         HTTP 200, and the body it declares
-  ok   probe  identity.source/guarded            HTTP 401, and the body it declares
-  FAIL check  plex:claimed                       /MediaContainer/claimed is false, and it declares true
-  ok   check  plex:no-anonymous-lan              HTTP 401, and the body it declares
-  ok   check  plex:not-published                 HTTP 200, and the body it declares
-  ok   check  plex:libraries-match               HTTP 200, and the body it declares
+What it can do
+  media.serve  [demonstrated]  on plex
+    probe guarded — the recording answers it
+    probe catalogue — the recording answers it
+  identity.source  [demonstrated]  on plex
+    probe identifies — the recording answers it
+    probe guarded — the recording answers it
+
+What must hold before it is installed
+  identity-before-claim — It says which server it is before anybody has claimed it
+    plex — the recording answers it
+  catalogue-refuses-anonymous — The catalogue refuses a caller presenting nothing from outside the private ranges
+    plex — the recording answers it
+  accounts-refuses-anonymous — It says nothing about who has an account here to a caller outside the private ranges
+    plex — the recording answers it
+
+What it would check, every day after
+  plex:claimed — Plex has an owner, so nobody else can become one
+    plex — refuted: /MediaContainer/claimed is false, and it declares true
+  plex:no-anonymous-lan — The catalogue still refuses a caller presenting nothing
+    plex — the recording answers it
+  plex:not-published — Plex is not publishing itself to the internet on its own
+    plex — the recording answers it
+  plex:libraries-match — Every Plex library points where the stack files that media type
+    plex — the recording answers it
 ```
+
+It refuses nothing about the manifest. It would not install it, because the
+plugin asks for `service.add`, `service.health.http` and `recipe.run` and that
+release offers a plugin `doctor.contribute` alone.
 
 Every assertion reaches the place it is about. `identifies` and
 `identity-before-claim` assert `/MediaContainer/machineIdentifier`, which is
@@ -359,7 +378,7 @@ provides    = ["media.serve", "identity.source", "plex:direct-play"]
 
 **The second block is commented out in the draft manifest, because the schema
 refuses it.** `schema_version = 1` permits exactly one service, deliberately —
-`plugin-manifest.md:74`, enforced at `validate.py:1004`. So this is a proposal
+`plugin-manifest.md:74`. So this is a proposal
 against the contract rather than a declaration, and it is the clearest thing the
 exercise turned up: the showcase cannot show the shape it most wants to.
 
@@ -550,8 +569,8 @@ value = "claim"
 to    = "plex"
 ```
 
-**Why this shape is worth having as the first real recipe.** The pair analysis in
-`validate.py` computes every flow a recipe *could* produce by reading it, and
+**Why this shape is worth having as the first real recipe.** The reader's pair
+analysis computes every flow a recipe *could* produce by reading it, and
 fails on any flow without a declared pair behind it. Every recipe written so far
 would make that analysis a check over an empty set. Here one captured value
 reaches two destinations, one of them a service this plugin did not install —
@@ -567,20 +586,26 @@ expiry is why it is asked for here rather than held.
 **The call outside the stack.** The claim exchange Plex performs on
 `POST /:/claim` is server-to-plex.tv, so the recipe itself does not name an
 external host. If the design later needs the token validated directly — `GET
-https://plex.tv/api/v2/user` — that step names `plex.tv`, which `validate.py`
+https://plex.tv/api/v2/user` — that step names `plex.tv`, which the reader
 accepts as a DNS name and would refuse as an address. **Open question 3.**
 
 ### `[[secret]]`
 
 ```toml
 [[secret]]
-id  = "plex-token"
+id  = "claim"
+of  = "plex"
+why = "Claiming the server is what makes it the household's rather than whoever reaches it first"
+
+[[secret]]
+id  = "plex_token"
 of  = "plex"
 why = "The request service signs the household in through Plex"
 ```
 
-`F3-R17` fails validation on a secret captured but not declared. Until now that
-rule has had nothing to refuse.
+`F3-R17` fails validation on a secret captured but not declared, and the reader
+matches a declaration to a capture by name: a `[[secret]]`'s `id` is the `name`
+its capture gives the value. The recipe captures two, so two are declared.
 
 ### `[[override]]`
 
@@ -588,10 +613,18 @@ rule has had nothing to refuse.
 [[override]]
 id  = "homepage.services.jellyfin"
 why = "The front door's Watch group points at Jellyfin, and after this install it is not what serves the library"
+
+[[override]]
+id  = "seerr.settings.plex"
+why = "The request service is told which Plex serves the library, and signs the household in through it"
 ```
 
-`F3-R18` fails validation on a bundled thing changed but not declared, and this is
-the first bundled thing any plugin has had cause to change. Note what it is *not*:
+`F3-R18` fails validation on a bundled thing changed but not declared. The reader
+holds a recipe's calls to it: a call that changes a service the stack ships needs
+an override whose id begins with that service's name, which is why
+`tell-the-request-service`'s `POST` to `seerr` is declared as
+`seerr.settings.plex`. The front door's entry is the other bundled thing this
+plugin changes. Note what it is *not*:
 it does not remove Jellyfin, stop it, or touch its data. It changes which service
 the front door's entry points at. Jellyfin keeps running unless the operator says
 otherwise, which is what makes the substitution reversible.
@@ -637,8 +670,8 @@ skipped it would install a Plex that was never claimed, never furnished, and
 never handed its token to anything — a plugin whose declared behaviour is wider
 than its actual one, which is the tolerated unknown `ARCH-R91` exists to refuse.
 
-`validate.py` already enforces the pairing: a manifest with a `[[recipe]]` and no
-`recipe.run` in `[requires]` fails today.
+The reader enforces the pairing: a manifest with a `[[recipe]]` and no
+`recipe.run` in `[requires]` is refused.
 
 ---
 

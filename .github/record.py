@@ -55,8 +55,8 @@ STARTUP_S = 300
 # How many answers in a row `/identity` must carry no `startState` for Plex to
 # count as started, two seconds apart.
 SETTLED = 10
-# The most of a body that is not a document a recording keeps, the same as
-# `prove.py` keeps of a live answer.
+# The most of a body that is not a document a recording keeps: enough for an
+# expectation's `body_starts_with` to read, and no more of a page than that.
 KEPT = 200
 
 NETWORKS = {"lan": "10.232.0.0/24", "outside": "100.100.0.0/24"}

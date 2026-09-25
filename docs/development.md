@@ -16,9 +16,10 @@ setting, and runs a first-run flow.
 
 ## Where the manifest stands
 
-`plugin.toml` is run against lemonfiber's **published schema** on every CI run,
-and conforms to it. It cannot be installed, because it asks for `recipe.run`,
-which lemonfiber does not offer.
+Every CI run asks `lemonfiber plugin claims` of the release `targets.toml` names,
+and it refuses nothing about the manifest. It would not install it: the plugin
+asks for `service.add`, `service.health.http` and `recipe.run`, and that release
+offers a plugin `doctor.contribute` alone.
 
 - **Every recording is made by running the image.** `.github/record.py` starts
   the image `plugin.toml` pins, never claimed, and writes every file in

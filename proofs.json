@@ -1,72 +1,72 @@
 {
   "lemonfiber": "0.16.0",
-  "against": "fixtures",
+  "against": "recordings",
   "proofs": [
     {
       "id": "identity-before-claim",
       "kind": "proof",
       "outcome": "passed",
-      "detail": "HTTP 200, and the body it declares"
+      "detail": ""
     },
     {
       "id": "catalogue-refuses-anonymous",
       "kind": "proof",
       "outcome": "passed",
-      "detail": "HTTP 401, and the body it declares"
+      "detail": ""
     },
     {
       "id": "accounts-refuses-anonymous",
       "kind": "proof",
       "outcome": "passed",
-      "detail": "HTTP 401, and the body it declares"
+      "detail": ""
     },
     {
       "id": "media.serve/guarded",
       "kind": "probe",
       "outcome": "passed",
-      "detail": "HTTP 401, and the body it declares"
+      "detail": ""
     },
     {
       "id": "media.serve/catalogue",
       "kind": "probe",
       "outcome": "passed",
-      "detail": "HTTP 200, and the body it declares"
+      "detail": ""
     },
     {
       "id": "identity.source/identifies",
       "kind": "probe",
       "outcome": "passed",
-      "detail": "HTTP 200, and the body it declares"
+      "detail": ""
     },
     {
       "id": "identity.source/guarded",
       "kind": "probe",
       "outcome": "passed",
-      "detail": "HTTP 401, and the body it declares"
+      "detail": ""
     },
     {
       "id": "plex:claimed",
       "kind": "check",
-      "outcome": "fail",
+      "outcome": "failed",
       "detail": "/MediaContainer/claimed is false, and it declares true"
     },
     {
       "id": "plex:no-anonymous-lan",
       "kind": "check",
       "outcome": "passed",
-      "detail": "HTTP 401, and the body it declares"
+      "detail": ""
     },
     {
       "id": "plex:not-published",
       "kind": "check",
       "outcome": "passed",
-      "detail": "HTTP 200, and the body it declares"
+      "detail": ""
     },
     {
       "id": "plex:libraries-match",
       "kind": "check",
       "outcome": "passed",
-      "detail": "HTTP 200, and the body it declares"
+      "detail": ""
     }
   ]
 }
