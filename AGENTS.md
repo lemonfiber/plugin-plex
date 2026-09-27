@@ -44,8 +44,10 @@ changed there and copied here, never the other way round.
 - **A proof asserts a body, never only a status.** Docker's port proxy accepts
   before anything inside is listening. The one exception is a refusal: a `401`
   is not something a port proxy can produce.
-- **A proof that could not be run is unproven** (`F3-R5`), never a pass. The
-  three verdicts stay three.
+- **A proof that could not be run is unproven** (`F3-R5`), never a pass, and
+  no declaration excuses it (`F10-R16`). Failing as declared is its own
+  verdict, written apart from passed and failed and never counted as passed
+  (`F10-R13`).
 - **No field beyond the contract's set.** A manifest carrying one is refused by
   name rather than ignored (`ARCH-R84`).
 - **The format is lemonfiber's to describe, and nothing here describes it.**
