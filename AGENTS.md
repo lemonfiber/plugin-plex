@@ -68,19 +68,22 @@ each. `just` lists the recipes it is made of.
 `proofs.json` is generated and committed; CI fails when the committed one is not
 what the run would write. `reader.py proofs` writes it on every run.
 
-### `proofs` is red here, on one check
+### `plex:claimed` fails as declared
 
-`proofs` fails on `plex:claimed`. Its only recording is of a server nobody has
-claimed, which holds `claimed: false` — the answer the check exists to catch —
-and the format has no way to state that a check is expected to fail on a
-recording. Every other probe, proof and check passes. `SPEC.md` § *The finding*
-has what was measured.
+`plex:claimed`'s only recording is of a server nobody has claimed, which holds
+`claimed: false` — the answer the check exists to catch. Its `expected` entry
+declares that it fails there, on `json` at `/MediaContainer/claimed`, and why,
+so `proofs` reports it as failing as declared, apart from passed and failed,
+and fails nothing on it (`F10-R13`). Every other probe, proof and check passes.
+`SPEC.md` § *The finding* has what was measured.
 
-`manifest`, `proofs`, `reader`, `recordings` and `harness` are not among
-`main`'s required contexts.
+The declaration excuses that one failure and nothing else. The day the
+recording holds `claimed: true`, or the check fails there on anything but
+`/MediaContainer/claimed`, `proofs` fails (`F10-R14`); remove or correct the
+declaration in the change that did it.
 
-Do not make `proofs` pass by pointing `plex:claimed` at something else or by
-trimming it. That is the one change this repository cannot accept.
+Do not point `plex:claimed` at another recording, trim it, or widen the
+declaration to excuse a failure it does not describe.
 
 ## Before you open a PR
 

@@ -26,11 +26,13 @@ offers a plugin `doctor.contribute` alone.
   `fixtures/`, each asked from where its `note` says. `just record` runs it;
   `just recordings` and the `recordings` CI job run it again and compare with
   what is committed. Both need Docker.
-- **`plex:claimed` fails against its recording.** The server is never claimed,
-  because claiming needs a plex.tv account and none is held for this
-  repository, so the recording holds `claimed: false`, which is the answer the
-  check exists to catch. `just proofs` reports it failed, and every other
-  proof, probe and check passes.
+- **`plex:claimed` fails against its recording, as declared.** The server is
+  never claimed, because claiming needs a plex.tv account and none is held for
+  this repository, so the recording holds `claimed: false`, which is the answer
+  the check exists to catch. Its `expected` entry says so, naming
+  `/MediaContainer/claimed` and the reason, and `just proofs` reports it as
+  failing as declared, never as passed. Every other proof, probe and check
+  passes.
 - **`media.serve`'s `catalogue` probe names no credential.** Its request is
   `accept` alone; the vocabulary says it is asked with the operator's
   credential, and how the runner presents a Plex token is open question 0 in
@@ -58,9 +60,9 @@ The open questions are at the end of SPEC.md.
 just ci        # every gate CI runs over this repository, in CI's order
 ```
 
-`just proofs` is red, for the reason above. `just` lists the recipes `ci` is
-made of, and the CI jobs it does not run are named in the `justfile` beside the
-recipe. Rules for working in this repository are in [AGENTS.md](../AGENTS.md).
+`just` lists the recipes `ci` is made of, and the CI jobs it does not run are
+named in the `justfile` beside the recipe. Rules for working in this repository
+are in [AGENTS.md](../AGENTS.md).
 
 `just ci` turns this clone's git hooks on as its first step, and
 `.githooks/commit-msg` then refuses a commit CI would refuse: a non-conventional
