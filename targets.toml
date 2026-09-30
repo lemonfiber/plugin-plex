@@ -15,4 +15,4 @@
 # plugin installs on it: a capability in `[requires]` the release does not offer
 # is reported by name (`F3-R21`) rather than failed on.
 
-lemonfiber = "0.16.0"
+lemonfiber = "0.17.0"

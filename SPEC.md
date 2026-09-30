@@ -181,9 +181,9 @@ What that means here:
 - **`plex:claimed` fails against the only recording there is**, and the failure
   is the check doing its job: the recording holds `claimed: false`. A recording
   of a claimed server needs a plex.tv account, and none is held for this
-  repository. The proof format states what a healthy answer is and has no way to
-  state that a check is expected to fire on a recording, so `proofs` reports this
-  check as failed.
+  repository. The check declares that it fails on that recording, on
+  `/MediaContainer/claimed`, with the reason (`expected`), so `proofs` reports it
+  as failing as declared rather than as failed or passed.
 - **An unclaimed server's operator holds no credential.** The `catalogue` probe
   is recorded from the gateway, which is the whole of the standing an operator
   has before the first-run flow.
@@ -711,8 +711,8 @@ timestamps. No recording is written by hand.
 
 It records an unclaimed server, because claiming needs a plex.tv account and
 none is held for this repository. So `plex:claimed` has no recording of the
-answer it passes on, and `just proofs` reports it failed against the recording
-of the answer it exists to catch.
+answer it passes on, and `just proofs` reports it failing as declared against
+the recording of the answer it exists to catch.
 
 ---
 
