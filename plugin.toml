@@ -129,14 +129,13 @@ Komga is. Claiming it is also the only way to obtain the token everything else \
 here needs, so the two are one flow rather than two.\
 """
 
-[[recipe.step]]
-id      = "take-the-claim-code"
-call    = { method = "GET", to = "plex", path = "/identity" }
-expect  = { status = 200 }
 # `operator` is the one origin that means the person typed this. The code expires
-# four minutes after plex.tv issues it, which is why it is asked for at the
-# moment it is used rather than held in a form filled out earlier.
-capture = [{ name = "claim", from = "operator.claim_code", origin = "operator" }]
+# four minutes after plex.tv issues it, which is why it is asked for when the
+# recipe runs rather than held in a form filled out earlier.
+[[recipe.input]]
+name   = "claim"
+origin = "operator"
+ask    = "The claim code plex.tv/claim shows you, which expires four minutes after it is issued"
 
 [[recipe.step]]
 id     = "claim"
@@ -173,7 +172,7 @@ to    = "seerr"
 
 # ─── What is held, and what bundled thing changes ────────────────────────────
 
-# One declaration per value the first-run flow holds, named as the capture names
+# One declaration per value the first-run flow holds, named as the recipe names
 # it: the claim code the operator types, and the token Plex hands back.
 [[secret]]
 id  = "claim"

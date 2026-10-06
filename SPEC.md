@@ -28,7 +28,7 @@ measured against.
 | `[[contribution]]` at `doctor.check` / `doctor.remedy` | ✔ | ✔ | ✔ |
 | `[[claim]]` + `[[claim.probe]]` | ✔ | — | two capabilities, proved against an unclaimed server |
 | A **core** capability that something asks for | inert | inert | `media.serve`, `identity.source` |
-| `[[recipe]]` / `.step` / `.pair` | ✘ | ✘ | ✔ one capture, three pairs |
+| `[[recipe]]` / `.input` / `.step` / `.pair` | ✘ | ✘ | ✔ one input, one capture, three pairs |
 | `[[secret]]` | ✘ | ✘ | ✔ |
 | `[[override]]` | ✘ | ✘ | ✔ |
 | A call to a host outside the stack | ✘ | ✘ | ✔ `plex.tv` |
@@ -511,7 +511,7 @@ about a plugin. One service here, so this entry names none: there is nothing to
 choose between. The two-service shape argued for below would have to name one in
 each, which is the half of that argument the contract has now settled.
 
-### `[[recipe]]` — one capture, three pairs
+### `[[recipe]]` — one input, one capture, three pairs
 
 This is the block neither published plugin has, and the reason `F8` is separated
 from `F3`: a recipe runs with lemonfiber's own authority.
@@ -527,11 +527,10 @@ Komga is. Claiming it is also the only way to obtain the token everything else
 here needs, so the two are one flow rather than two.
 """
 
-[[recipe.step]]
-id      = "take-the-claim-code"
-call    = { method = "GET", to = "plex", path = "/identity" }
-expect  = { status = 200 }
-capture = [{ name = "claim", from = "operator.claim_code", origin = "operator" }]
+[[recipe.input]]
+name   = "claim"
+origin = "operator"
+ask    = "The claim code plex.tv/claim shows you, which expires four minutes after it is issued"
 
 [[recipe.step]]
 id     = "claim"
@@ -579,9 +578,10 @@ would be an operator's credential arriving somewhere they never agreed to. With
 Tautulli it would be three destinations and two such services, which is the
 argument for the contract change put at its narrowest.
 
-The claim code is captured with `origin = "operator"`. It is the only one of the
-four permitted origins that means *the person typed this*, and the four-minute
-expiry is why it is asked for here rather than held.
+The claim code is an input with `origin = "operator"`, not a capture: no answer
+holds it. `operator` is the only one of the four permitted origins that means
+*the person typed this*, and the four-minute expiry is why it is asked for when
+the recipe runs rather than held.
 
 **The call outside the stack.** The claim exchange Plex performs on
 `POST /:/claim` is server-to-plex.tv, so the recipe itself does not name an
