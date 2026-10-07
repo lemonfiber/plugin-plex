@@ -114,8 +114,17 @@ RECORDINGS = [
      ("The account list, admitted from the gateway as the catalogue is.")),
     ("prefs-not-published.json", "host", "/:/prefs",
      ("Server settings, admitted from the gateway. PublishServerOnPlexOnlineKey is one entry of "
-     "MediaContainer.Setting, found by its `id`.")),
+     "MediaContainer.Setting, found by its `id`. Every setting is kept, each as its `id` and its "
+     "`value`; the `label`, `summary`, `type`, `default`, `hidden`, `advanced` and `group` Plex "
+     "answers beside them are not.")),
 ]
+
+# Of each entry of a list, the members a recording keeps, by file and where the
+# list is. An expectation reaches a setting by the `id` it carries and reads its
+# `value`, so every setting is kept, as those two.
+KEEPS = {
+    "prefs-not-published.json": ("/MediaContainer/Setting", ("id", "value")),
+}
 
 LOG = "/config/Library/Application Support/Plex Media Server/Logs/Plex Media Server.log"
 
@@ -278,7 +287,7 @@ def record(into: pathlib.Path) -> None:
         plex.furnished()
         plex.started()
         for name, where, path, why in RECORDINGS:
-            answer = plex.ask(where, "GET", path)
+            answer = kept(plex.ask(where, "GET", path), name)
             logged, expected = plex.logged_caller("GET", path), plex.expected_caller(where)
             if logged != expected:
                 raise RuntimeError(
@@ -293,6 +302,20 @@ def record(into: pathlib.Path) -> None:
             }
             (into / name).write_text(json.dumps(recording, indent=2) + "\n", encoding="utf-8")
             print(f"  {answer['status']}  {where:7}  {logged:12}  {path:18}  {name}")
+
+
+def kept(answer: dict, name: str) -> dict:
+    """An answer with each entry of the list `KEEPS` names cut to the members kept."""
+    if name not in KEEPS:
+        return answer
+    pointer, members = KEEPS[name]
+    at = answer.get("json")
+    for step in pointer.strip("/").split("/"):
+        at = at.get(step) if isinstance(at, dict) else None
+    if isinstance(at, list):
+        at[:] = [{member: entry[member] for member in members if member in entry}
+                 if isinstance(entry, dict) else entry for entry in at]
+    return answer
 
 
 def masked(document: dict, name: str) -> dict:
