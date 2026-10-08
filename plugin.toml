@@ -1,4 +1,4 @@
-#:schema https://github.com/lemonfiber/lemonfiber/releases/download/v0.16.0/plugin-manifest.schema.json
+#:schema https://github.com/lemonfiber/lemonfiber/releases/download/v0.17.0/plugin-manifest.schema.json
 # Plex, as a lemonfiber plugin.
 #
 # Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md
@@ -129,14 +129,13 @@ Komga is. Claiming it is also the only way to obtain the token everything else \
 here needs, so the two are one flow rather than two.\
 """
 
-[[recipe.step]]
-id      = "take-the-claim-code"
-call    = { method = "GET", to = "plex", path = "/identity" }
-expect  = { status = 200 }
 # `operator` is the one origin that means the person typed this. The code expires
-# four minutes after plex.tv issues it, which is why it is asked for at the
-# moment it is used rather than held in a form filled out earlier.
-capture = [{ name = "claim", from = "operator.claim_code", origin = "operator" }]
+# four minutes after plex.tv issues it, which is why it is asked for when the
+# recipe runs rather than held in a form filled out earlier.
+[[recipe.input]]
+name   = "claim"
+origin = "operator"
+ask    = "The claim code plex.tv/claim shows you, which expires four minutes after it is issued"
 
 [[recipe.step]]
 id     = "claim"
@@ -173,7 +172,7 @@ to    = "seerr"
 
 # ─── What is held, and what bundled thing changes ────────────────────────────
 
-# One declaration per value the first-run flow holds, named as the capture names
+# One declaration per value the first-run flow holds, named as the recipe names
 # it: the claim code the operator types, and the token Plex hands back.
 [[secret]]
 id  = "claim"
@@ -207,12 +206,12 @@ category  = "services"
 request   = { method = "GET", path = "/identity", accept = "application/json" }
 expect    = { status = 200, json = { "/MediaContainer/claimed" = true } }
 fixture   = "fixtures/identity-anonymous.json"
+expected  = [
+    { fixture = "fixtures/identity-anonymous.json", verdict = "fails", constraint = "json", place = "/MediaContainer/claimed", reason = "The one recording there is comes from a server nobody has claimed, so it holds claimed: false, the answer this check exists to catch. A recording of a claimed server needs a plex.tv account." },
+]
 timeout_s = 10
 why       = "An unclaimed Plex server hands ownership to whoever reaches it first."
-# The one recording there is comes from a server nobody has claimed, so this
-# check fails against it, and that failure is the check doing its job: the
-# recording holds `claimed: false`. A recording of a claimed server needs a
-# plex.tv account. SPEC.md § The finding.
+# SPEC.md § The finding.
 
 [[contribution]]
 at     = "doctor.remedy"

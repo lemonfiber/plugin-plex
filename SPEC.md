@@ -28,7 +28,7 @@ measured against.
 | `[[contribution]]` at `doctor.check` / `doctor.remedy` | ✔ | ✔ | ✔ |
 | `[[claim]]` + `[[claim.probe]]` | ✔ | — | two capabilities, proved against an unclaimed server |
 | A **core** capability that something asks for | inert | inert | `media.serve`, `identity.source` |
-| `[[recipe]]` / `.step` / `.pair` | ✘ | ✘ | ✔ one capture, three pairs |
+| `[[recipe]]` / `.input` / `.step` / `.pair` | ✘ | ✘ | ✔ one input, one capture, three pairs |
 | `[[secret]]` | ✘ | ✘ | ✔ |
 | `[[override]]` | ✘ | ✘ | ✔ |
 | A call to a host outside the stack | ✘ | ✘ | ✔ `plex.tv` |
@@ -181,9 +181,9 @@ What that means here:
 - **`plex:claimed` fails against the only recording there is**, and the failure
   is the check doing its job: the recording holds `claimed: false`. A recording
   of a claimed server needs a plex.tv account, and none is held for this
-  repository. The proof format states what a healthy answer is and has no way to
-  state that a check is expected to fire on a recording, so `proofs` reports this
-  check as failed.
+  repository. The check declares that it fails on that recording, on
+  `/MediaContainer/claimed`, with the reason (`expected`), so `proofs` reports it
+  as failing as declared rather than as failed or passed.
 - **An unclaimed server's operator holds no credential.** The `catalogue` probe
   is recorded from the gateway, which is the whole of the standing an operator
   has before the first-run flow.
@@ -511,7 +511,7 @@ about a plugin. One service here, so this entry names none: there is nothing to
 choose between. The two-service shape argued for below would have to name one in
 each, which is the half of that argument the contract has now settled.
 
-### `[[recipe]]` — one capture, three pairs
+### `[[recipe]]` — one input, one capture, three pairs
 
 This is the block neither published plugin has, and the reason `F8` is separated
 from `F3`: a recipe runs with lemonfiber's own authority.
@@ -527,11 +527,10 @@ Komga is. Claiming it is also the only way to obtain the token everything else
 here needs, so the two are one flow rather than two.
 """
 
-[[recipe.step]]
-id      = "take-the-claim-code"
-call    = { method = "GET", to = "plex", path = "/identity" }
-expect  = { status = 200 }
-capture = [{ name = "claim", from = "operator.claim_code", origin = "operator" }]
+[[recipe.input]]
+name   = "claim"
+origin = "operator"
+ask    = "The claim code plex.tv/claim shows you, which expires four minutes after it is issued"
 
 [[recipe.step]]
 id     = "claim"
@@ -579,9 +578,10 @@ would be an operator's credential arriving somewhere they never agreed to. With
 Tautulli it would be three destinations and two such services, which is the
 argument for the contract change put at its narrowest.
 
-The claim code is captured with `origin = "operator"`. It is the only one of the
-four permitted origins that means *the person typed this*, and the four-minute
-expiry is why it is asked for here rather than held.
+The claim code is an input with `origin = "operator"`, not a capture: no answer
+holds it. `operator` is the only one of the four permitted origins that means
+*the person typed this*, and the four-minute expiry is why it is asked for when
+the recipe runs rather than held.
 
 **The call outside the stack.** The claim exchange Plex performs on
 `POST /:/claim` is server-to-plex.tv, so the recipe itself does not name an
@@ -711,8 +711,8 @@ timestamps. No recording is written by hand.
 
 It records an unclaimed server, because claiming needs a plex.tv account and
 none is held for this repository. So `plex:claimed` has no recording of the
-answer it passes on, and `just proofs` reports it failed against the recording
-of the answer it exists to catch.
+answer it passes on, and `just proofs` reports it failing as declared against
+the recording of the answer it exists to catch.
 
 ---
 
