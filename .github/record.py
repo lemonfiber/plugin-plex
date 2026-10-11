@@ -66,6 +66,7 @@ NETWORKS = {"lan": "10.232.0.0/24", "outside": "100.100.0.0/24"}  # NOSONAR - th
 # The two paths asked from more than one place.
 SECTIONS = "/library/sections"
 ACCOUNTS = "/accounts"
+PREFS = "prefs-not-published.json"
 
 WHERE = {
     "host": "the machine Docker runs on, through a published port, which Plex logged as its "
@@ -112,7 +113,7 @@ RECORDINGS = [
      "server's operator has.")),
     ("accounts-host.json", "host", ACCOUNTS,
      ("The account list, admitted from the gateway as the catalogue is.")),
-    ("prefs-not-published.json", "host", "/:/prefs",
+    (PREFS, "host", "/:/prefs",
      ("Server settings, admitted from the gateway. PublishServerOnPlexOnlineKey is one entry of "
      "MediaContainer.Setting, found by its `id`. Every setting is kept, each as its `id` and its "
      "`value`; the `label`, `summary`, `type`, `default`, `hidden`, `advanced` and `group` Plex "
@@ -123,7 +124,7 @@ RECORDINGS = [
 # list is. An expectation reaches a setting by the `id` it carries and reads its
 # `value`, so every setting is kept, as those two.
 KEEPS = {
-    "prefs-not-published.json": ("/MediaContainer/Setting", ("id", "value")),
+    PREFS: ("/MediaContainer/Setting", ("id", "value")),
 }
 
 LOG = "/config/Library/Application Support/Plex Media Server/Logs/Plex Media Server.log"
@@ -276,7 +277,7 @@ VARIES = {
         "/MediaContainer/Directory/0/updatedAt",
         "/MediaContainer/Directory/0/scannedAt",
     ],
-    "prefs-not-published.json": ["/MediaContainer/Setting/[id=MachineIdentifier]/value"],
+    PREFS: ["/MediaContainer/Setting/[id=MachineIdentifier]/value"],
 }
 
 
