@@ -9,52 +9,50 @@
 
 ## What this repo is
 
-Plex as a lemonfiber plugin, and **the repository that demonstrates a gap in the
-plugin contract rather than working around it**. Read [SPEC.md](SPEC.md) before
-changing `plugin.toml`; the headline section is not background.
-
-The short version, as it stands: a probe asks for JSON (`accept`), an
-expectation reaches into a `MediaContainer`, and the setting that matters — one
-of 151, in a list whose order nobody promised — is reachable by the `id` it
-carries rather than by an index. `media.serve`'s `catalogue` probe names no
-credential: the vocabulary says it is asked with the operator's, and how the
-runner presents a Plex token is open question 0 in `SPEC.md`.
-
-Every file in `fixtures/` is written by `.github/record.py` off the pinned image,
-never claimed, because claiming needs a plex.tv account and none is held for this
-repository. **Never write or edit a recording by hand**; run `just record`, and
-`just recordings` (the `recordings` CI job) checks the committed ones against a
-fresh run.
-
-`.github/reader/` is a **copy** of the harness whose canonical home is
-`plugin-template`. The `harness` job compares the two byte for byte, so it is
-changed there and copied here, never the other way round.
+Plex Media Server as a first-party lemonfiber plugin: `plugin.toml` and the
+adapter that speaks the `owner.claim@1` and `media.serve@1` contracts in front of
+Plex. The adapter is the Rust crate at the root, built on `lemonfiber-adapter-kit`
+from the core at the commit `Cargo.toml` pins, into the image the `Dockerfile`
+builds. `release.yml` publishes that image from every commit on `main` and from
+the train's tag, through spec's reusable `adapter-release`. `plugin.toml` runs Plex
+alone and does not run the adapter yet; its recordings are under `fixtures/`.
 
 ## The rules you cannot break
 
-- **Nothing here executes.** A plugin is declarative data (`F3-R1`), and
-  contributed code is never run, under any opt-in (`F3-R6`). The Python under
-  `.github/reader/` is CI harness and is not part of what an operator installs:
-  it fetches the lemonfiber release `targets.toml` names and asks it.
-- **The plugin is `plugin.toml` and `fixtures/`.** Proofs, claims and
-  contributions live in the manifest, not beside it: an installer reads one file,
-  and something the installer never reads cannot be what `F3-R4` refuses an
-  install over.
-- **The image is named by digest** (`F3-R8`). Moving the pin means re-recording
-  every fixture against the new image in the same change.
-- **A proof asserts a body, never only a status.** Docker's port proxy accepts
-  before anything inside is listening. The one exception is a refusal: a `401`
-  is not something a port proxy can produce.
-- **A proof that could not be run is unproven** (`F3-R5`), never a pass, and
-  no declaration excuses it (`F10-R16`). Failing as declared is its own
-  verdict, written apart from passed and failed and never counted as passed
-  (`F10-R13`).
-- **No field beyond the contract's set.** A manifest carrying one is refused by
-  name rather than ignored (`ARCH-R84`).
-- **The format is lemonfiber's to describe, and nothing here describes it.**
-  `reader.py` carries no list of tables, fields, kinds, closed sets or capability
-  names, and decides no verdict: `F10-R2` forbids a second description of the
-  format, and every verdict CI reports is `lemonfiber plugin claims`'s own.
+- **The plugin id is the service's id** (`ARCH-R266`).
+- **No Python here.** The reader is spec's `first-party-plugin` workflow's.
+- **No `unwrap`, `expect`, `panic` or indexing** outside tests. The lints in
+  `Cargo.toml` are the core's.
+- **The adapter never keeps Plex's token.** Plex writes the token of the account
+  that claimed it into its `Preferences.xml`, and the adapter reads it from the
+  configuration directory it shares with Plex for every call, through the kit's
+  `Shared`, which follows no link (`ARCH-R339`, `ARCH-R364`). It never logs it.
+- **A claim changes nothing Plex already holds** (`ARCH-R328`). Only a Plex whose
+  `/identity` says it is unclaimed is claimed. The code the operator entered is
+  exchanged at plex.tv under the identifier Plex presents there, the token that
+  answers is written into `Preferences.xml`, and `claim` answers that it is in
+  force once Plex restarts, because Plex reads its preferences only at start. A
+  Plex claimed by an account whose token it does not keep is answered as theirs.
+- **Nothing is asked for a member by name.** A member's own token on Plex is
+  handed out by plex.tv, so every `media.serve` operation naming a member answers
+  `unsupported`, as does everything else Plex cannot do (`ARCH-R334`).
+- **A guard asks the adapter about a part or an item.** The declaration names
+  each byte path's space: a part file's id is in `part`, and an item's own
+  answer, pictures, transcodes and resized pictures are in `metadata`, the last
+  two by the item their `path` or `url` names, matched whole. Bytes under
+  stream, download, sync and live TV ids are refused. The guard's question is
+  answered only by asking Plex with the member's own token, and grants only
+  where Plex shows that member the item asked about, or an item holding the
+  part asked about (`ARCH-R366`, `ARCH-R368`).
+- **The internal TLS port is Plex's own port.** `serve_tls` sets
+  `customCertificatePath` to the PKCS#12 the core wrote and an empty
+  `customCertificateKey`, and answers that it is in force once Plex restarts
+  until a handshake presents the certificate (`ARCH-R345`, `ARCH-R346`).
+- **The core's crates move with the train.** The `rev` in `Cargo.toml` is the
+  core commit `targets.toml` names, the same for every `lemonfiber-*` crate.
+- **Moving Plex's digest** means recording every response again against the new
+  image in the same change, moving `RELEASE` and `DIGEST` in `src/adapter.rs`
+  with it, and committing the `proofs.json` the checks write.
 
 ## Checks
 
@@ -62,30 +60,6 @@ changed there and copied here, never the other way round.
 just ci
 ```
 
-Every gate CI runs over the contents of this repository, in CI's order. The jobs
-it leaves out are named in the `justfile` beside the recipe, with what covers
-each. `just` lists the recipes it is made of.
-
-`proofs.json` is generated and committed; CI fails when the committed one is not
-what the run would write. `reader.py proofs` writes it on every run.
-
-### `plex:claimed` fails as declared
-
-`plex:claimed`'s only recording is of a server nobody has claimed, which holds
-`claimed: false` — the answer the check exists to catch. Its `expected` entry
-declares that it fails there, on `json` at `/MediaContainer/claimed`, and why,
-so `proofs` reports it as failing as declared, apart from passed and failed,
-and fails nothing on it (`F10-R13`). Every other probe, proof and check passes.
-`SPEC.md` § *The finding* has what was measured.
-
-The declaration excuses that one failure and nothing else. The day the
-recording holds `claimed: true`, or the check fails there on anything but
-`/MediaContainer/claimed`, `proofs` fails (`F10-R14`); remove or correct the
-declaration in the change that did it.
-
-Do not point `plex:claimed` at another recording, trim it, or widen the
-declaration to excuse a failure it does not describe.
-
-## Before you open a PR
-
-`just ci` turns this clone's git hooks on as its first step.
+The gates that need nothing but this tree. The plugin verdict and the
+recordings run in CI; `just recordings` takes the recordings again locally, with
+Docker.

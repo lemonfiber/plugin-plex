@@ -1,46 +1,10 @@
 {
-  "lemonfiber": "0.17.0",
+  "lemonfiber": "0d8245e1af6579fbc5b2e186c21597475b18dc0d",
   "against": "recordings",
   "proofs": [
     {
       "id": "identity-before-claim",
       "kind": "proof",
-      "outcome": "passed",
-      "detail": ""
-    },
-    {
-      "id": "catalogue-refuses-anonymous",
-      "kind": "proof",
-      "outcome": "passed",
-      "detail": ""
-    },
-    {
-      "id": "accounts-refuses-anonymous",
-      "kind": "proof",
-      "outcome": "passed",
-      "detail": ""
-    },
-    {
-      "id": "media.serve/guarded",
-      "kind": "probe",
-      "outcome": "passed",
-      "detail": ""
-    },
-    {
-      "id": "media.serve/catalogue",
-      "kind": "probe",
-      "outcome": "passed",
-      "detail": ""
-    },
-    {
-      "id": "identity.source/identifies",
-      "kind": "probe",
-      "outcome": "passed",
-      "detail": ""
-    },
-    {
-      "id": "identity.source/guarded",
-      "kind": "probe",
       "outcome": "passed",
       "detail": ""
     },
@@ -60,19 +24,7 @@
       ]
     },
     {
-      "id": "plex:no-anonymous-lan",
-      "kind": "check",
-      "outcome": "passed",
-      "detail": ""
-    },
-    {
       "id": "plex:not-published",
-      "kind": "check",
-      "outcome": "passed",
-      "detail": ""
-    },
-    {
-      "id": "plex:libraries-match",
       "kind": "check",
       "outcome": "passed",
       "detail": ""
