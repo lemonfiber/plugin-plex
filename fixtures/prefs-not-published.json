@@ -1,625 +1,166 @@
 {
   "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
   "note": "A fresh instance of this image, never claimed: no plex.tv account and no token. This is what an operator's Plex answers between install and the first-run flow, to a caller presenting nothing. Asked from the machine Docker runs on, through a published port, which Plex logged as its network's gateway. Server settings, admitted from the gateway. PublishServerOnPlexOnlineKey is one entry of MediaContainer.Setting, found by its `id`. Every setting is kept, each as its `id` and its `value`; the `label`, `summary`, `type`, `default`, `hidden`, `advanced` and `group` Plex answers beside them are not.",
-  "request": {
-    "method": "GET",
-    "path": "/:/prefs",
-    "accept": "application/json"
-  },
+  "request": {"method": "GET", "path": "/:/prefs", "accept": "application/json"},
   "response": {
     "status": 200,
-    "headers": {
-      "content-type": "application/json"
-    },
+    "headers": {"content-type": "application/json"},
     "json": {
       "MediaContainer": {
-        "size": 151,
         "Setting": [
-          {
-            "id": "FriendlyName",
-            "value": ""
-          },
-          {
-            "id": "sendCrashReports",
-            "value": true
-          },
-          {
-            "id": "FSEventLibraryUpdatesEnabled",
-            "value": false
-          },
-          {
-            "id": "FSEventLibraryPartialScanEnabled",
-            "value": false
-          },
-          {
-            "id": "watchMusicSections",
-            "value": false
-          },
-          {
-            "id": "ScheduledLibraryUpdatesEnabled",
-            "value": false
-          },
-          {
-            "id": "ScheduledLibraryUpdateInterval",
-            "value": 3600
-          },
-          {
-            "id": "autoEmptyTrash",
-            "value": true
-          },
-          {
-            "id": "allowMediaDeletion",
-            "value": true
-          },
-          {
-            "id": "allowMediaDeletionLanOnly",
-            "value": false
-          },
-          {
-            "id": "OnDeckWindow",
-            "value": 16
-          },
-          {
-            "id": "OnDeckLimit",
-            "value": 40
-          },
-          {
-            "id": "OnDeckIncludePremieres",
-            "value": true
-          },
-          {
-            "id": "LibraryVideoPlayedThreshold",
-            "value": 90
-          },
-          {
-            "id": "SmartShuffleMusic",
-            "value": true
-          },
-          {
-            "id": "LibraryDefaultVisibility",
-            "value": 0
-          },
-          {
-            "id": "CinemaTrailersType",
-            "value": 1
-          },
-          {
-            "id": "CinemaTrailersFromLibrary",
-            "value": true
-          },
-          {
-            "id": "CinemaTrailersFromTheater",
-            "value": false
-          },
-          {
-            "id": "CinemaTrailersFromBluRay",
-            "value": false
-          },
-          {
-            "id": "CinemaTrailersIncludeEnglish",
-            "value": true
-          },
-          {
-            "id": "CinemaTrailersPrerollID",
-            "value": ""
-          },
-          {
-            "id": "GlobalMusicVideoPath",
-            "value": ""
-          },
-          {
-            "id": "iTunesSharingEnabled",
-            "value": false
-          },
-          {
-            "id": "iTunesLibraryXmlPath",
-            "value": ""
-          },
-          {
-            "id": "MachineIdentifier",
-            "value": "44b8f0f5-4837-48b3-a8bb-65a552efe754"
-          },
-          {
-            "id": "AllowHighOutputBitrates",
-            "value": true
-          },
-          {
-            "id": "ConfigurationUrl",
-            "value": "/web"
-          },
-          {
-            "id": "AcceptedEULA",
-            "value": false
-          },
-          {
-            "id": "LanguageInCloud",
-            "value": false
-          },
-          {
-            "id": "ArticleStrings",
-            "value": "the,das,der,a,an,el,la"
-          },
-          {
-            "id": "TranscoderVideoResolutionLimit",
-            "value": "0x0"
-          },
-          {
-            "id": "TranscoderPhotoFileSizeLimitMiB",
-            "value": 100
-          },
-          {
-            "id": "EnableIPv6",
-            "value": true
-          },
-          {
-            "id": "customCertificatePath",
-            "value": ""
-          },
-          {
-            "id": "customCertificateKey",
-            "value": ""
-          },
-          {
-            "id": "customCertificateDomain",
-            "value": ""
-          },
-          {
-            "id": "PreferredNetworkInterface",
-            "value": ""
-          },
-          {
-            "id": "DisableTLSv1_0",
-            "value": false
-          },
-          {
-            "id": "allowedHttpOrigins",
-            "value": ""
-          },
-          {
-            "id": "requestLimitsScale",
-            "value": 1.0
-          },
-          {
-            "id": "GdmEnabled",
-            "value": true
-          },
-          {
-            "id": "PublishServerOnPlexOnlineKey",
-            "value": false
-          },
-          {
-            "id": "PlexOnlineMail",
-            "value": ""
-          },
-          {
-            "id": "PlexOnlineUrl",
-            "value": "https://servers.plex.tv"
-          },
-          {
-            "id": "PlexWebDesktopUrl",
-            "value": "https://app.plex.tv/desktop"
-          },
-          {
-            "id": "PlexWebAuthUrl",
-            "value": "https://app.plex.tv/auth"
-          },
-          {
-            "id": "EnablePinAuth",
-            "value": false
-          },
-          {
-            "id": "ManualPortMappingMode",
-            "value": false
-          },
-          {
-            "id": "ManualPortMappingPort",
-            "value": 32400
-          },
-          {
-            "id": "LastAutomaticMappedPort",
-            "value": 0
-          },
-          {
-            "id": "TranscoderQuality",
-            "value": 0
-          },
-          {
-            "id": "SegmentedTranscoderTimeout",
-            "value": 20
-          },
-          {
-            "id": "TranscoderTempDirectory",
-            "value": "/transcode"
-          },
-          {
-            "id": "DownloadsTempDirectory",
-            "value": ""
-          },
-          {
-            "id": "TranscoderDefaultDuration",
-            "value": 120
-          },
-          {
-            "id": "TranscoderThrottleBuffer",
-            "value": 60
-          },
-          {
-            "id": "TranscoderPruneBuffer",
-            "value": 300
-          },
-          {
-            "id": "TranscoderLivePruneBuffer",
-            "value": 5400
-          },
-          {
-            "id": "TranscoderH264Preset",
-            "value": "veryfast"
-          },
-          {
-            "id": "TranscoderH264BackgroundPreset",
-            "value": "veryfast"
-          },
-          {
-            "id": "TranscoderH264Options",
-            "value": ""
-          },
-          {
-            "id": "TranscoderH264OptionsOverride",
-            "value": ""
-          },
-          {
-            "id": "TranscoderH264MinimumCRF",
-            "value": 16.0
-          },
-          {
-            "id": "TranscoderLogLevel",
-            "value": "error"
-          },
-          {
-            "id": "TranscoderSessionLogLevel",
-            "value": "quiet"
-          },
-          {
-            "id": "TranscoderInputTracing",
-            "value": false
-          },
-          {
-            "id": "TranscoderPersistSessionDirs",
-            "value": false
-          },
-          {
-            "id": "TranscoderCanOnlyRemuxVideo",
-            "value": false
-          },
-          {
-            "id": "TranscoderHEVCEncoding",
-            "value": false
-          },
-          {
-            "id": "SystemAudioCodecs",
-            "value": true
-          },
-          {
-            "id": "VaapiDriver",
-            "value": ""
-          },
-          {
-            "id": "VaapiKernelDriver",
-            "value": ""
-          },
-          {
-            "id": "CLDriver",
-            "value": ""
-          },
-          {
-            "id": "omxdecExtraOutBufs",
-            "value": 0
-          },
-          {
-            "id": "PluginsLaunchTimeout",
-            "value": 180
-          },
-          {
-            "id": "DlnaEnabled",
-            "value": false
-          },
-          {
-            "id": "DlnaPlatinumLoggingLevel",
-            "value": "OFF"
-          },
-          {
-            "id": "DlnaClientPreferences",
-            "value": ""
-          },
-          {
-            "id": "DlnaReportTimeline",
-            "value": true
-          },
-          {
-            "id": "DlnaDefaultProtocolInfo",
-            "value": "http-get:*:video/mpeg:*,http-get:*:video/mp4:*,http-get:*:video/vnd.dlna.mpeg-tts:*,http-get:*:video/avi:*,http-get:*:video/x-matroska:*,http-get:*:video/x-ms-wmv:*,http-get:*:video/wtv:*,http-get:*:audio/mpeg:*,http-get:*:audio/mp3:*,http-get:*:audio/mp4:*,http-get:*:audio/x-ms-wma*,http-get:*:audio/wav:*,http-get:*:audio/L16:*,http-get:*image/jpeg:*,http-get:*image/png:*,http-get:*image/gif:*,http-get:*image/tiff:*"
-          },
-          {
-            "id": "DlnaDeviceDiscoveryInterval",
-            "value": 60
-          },
-          {
-            "id": "DlnaAnnouncementLeaseTime",
-            "value": 1800
-          },
-          {
-            "id": "DlnaDescriptionIcons",
-            "value": "png,jpeg;260x260,120x120,48x48"
-          },
-          {
-            "id": "SyncMyPlexLoginGCDeferral",
-            "value": 14400
-          },
-          {
-            "id": "SyncPagingItemsLimit",
-            "value": 100
-          },
-          {
-            "id": "BackgroundQueueIdlePaused",
-            "value": false
-          },
-          {
-            "id": "ScannerLowPriority",
-            "value": false
-          },
-          {
-            "id": "forceAutoAdjustQuality",
-            "value": false
-          },
-          {
-            "id": "EnableABRDebugOverlay",
-            "value": false
-          },
-          {
-            "id": "ABRKeepOldTranscodes",
-            "value": false
-          },
-          {
-            "id": "ForceABRDisabled",
-            "value": false
-          },
-          {
-            "id": "RelayEnabled",
-            "value": true
-          },
-          {
-            "id": "TranscodeCountLimit",
-            "value": 0
-          },
-          {
-            "id": "_CPU-TranscodeCountLimit",
-            "value": 0
-          },
-          {
-            "id": "OptimizerTranscodeCountLimit",
-            "value": 1
-          },
-          {
-            "id": "logDebug",
-            "value": true
-          },
-          {
-            "id": "LogVerbose",
-            "value": false
-          },
-          {
-            "id": "LogTokensForDebug",
-            "value": false
-          },
-          {
-            "id": "LogMemoryUse",
-            "value": false
-          },
-          {
-            "id": "LogSynchronous",
-            "value": false
-          },
-          {
-            "id": "MinimumProgressTime",
-            "value": 60000
-          },
-          {
-            "id": "customConnections",
-            "value": ""
-          },
-          {
-            "id": "allowedNetworks",
-            "value": ""
-          },
-          {
-            "id": "WebHooksEnabled",
-            "value": true
-          },
-          {
-            "id": "ButlerStartHour",
-            "value": 2
-          },
-          {
-            "id": "ButlerEndHour",
-            "value": 5
-          },
-          {
-            "id": "ButlerTaskBackupDatabase",
-            "value": true
-          },
-          {
-            "id": "ButlerDatabaseBackupPath",
-            "value": "/config/Library/Application Support/Plex Media Server/Plug-in Support/Databases"
-          },
-          {
-            "id": "ButlerTaskOptimizeDatabase",
-            "value": true
-          },
-          {
-            "id": "ButlerTaskCleanOldBundles",
-            "value": true
-          },
-          {
-            "id": "ButlerTaskCleanOldCacheFiles",
-            "value": true
-          },
-          {
-            "id": "ButlerTaskRefreshLocalMedia",
-            "value": true
-          },
-          {
-            "id": "ButlerTaskRefreshLibraries",
-            "value": false
-          },
-          {
-            "id": "ButlerTaskUpgradeMediaAnalysis",
-            "value": true
-          },
-          {
-            "id": "ButlerTaskRefreshPeriodicMetadata",
-            "value": true
-          },
-          {
-            "id": "ButlerTaskDeepMediaAnalysis",
-            "value": true
-          },
-          {
-            "id": "ButlerTaskGarbageCollectBlobs",
-            "value": true
-          },
-          {
-            "id": "ButlerTaskRefreshEpgGuides",
-            "value": true
-          },
-          {
-            "id": "ButlerUpdateChannel",
-            "value": "16"
-          },
-          {
-            "id": "GenerateIndexFilesDuringAnalysis",
-            "value": false
-          },
-          {
-            "id": "ButlerTaskGenerateMediaIndexFiles",
-            "value": false
-          },
-          {
-            "id": "GenerateBIFKeyframesOnly",
-            "value": true
-          },
-          {
-            "id": "GenerateBIFBehavior",
-            "value": "never"
-          },
-          {
-            "id": "GenerateBIFFrameInterval",
-            "value": 2
-          },
-          {
-            "id": "GenerateChapterThumbBehavior",
-            "value": "scheduled"
-          },
-          {
-            "id": "LoudnessAnalysisBehavior",
-            "value": "scheduled"
-          },
-          {
-            "id": "LongRunningJobThreads",
-            "value": 0
-          },
-          {
-            "id": "LoudnessAnalysisThreads",
-            "value": 0
-          },
-          {
-            "id": "LoudnessReplayGainStyle",
-            "value": false
-          },
-          {
-            "id": "RadioTopTracksPerAlbum",
-            "value": 3
-          },
-          {
-            "id": "RadioDaysSinceLastPlayed",
-            "value": 2
-          },
-          {
-            "id": "RadioDirectoryThreshold",
-            "value": 15
-          },
-          {
-            "id": "RadioDirectoryLimit",
-            "value": 50
-          },
-          {
-            "id": "LocationVisibility",
-            "value": 1
-          },
-          {
-            "id": "DatabaseCacheSize",
-            "value": 40
-          },
-          {
-            "id": "CertificateVersion",
-            "value": 2
-          },
-          {
-            "id": "CertificateUUID",
-            "value": ""
-          },
-          {
-            "id": "enableLocalSecurity",
-            "value": -1
-          },
-          {
-            "id": "EyeQUser",
-            "value": ""
-          },
-          {
-            "id": "DvrShowUnsupportedDevices",
-            "value": false
-          },
-          {
-            "id": "DvrComskipRemoveIntermediates",
-            "value": true
-          },
-          {
-            "id": "DvrComskipKeepOriginal",
-            "value": false
-          },
-          {
-            "id": "SubtitlesPersistIfAdmin",
-            "value": false
-          },
-          {
-            "id": "DvrIncrementalEpgLoader",
-            "value": false
-          },
-          {
-            "id": "EpgUseSelectedProvider",
-            "value": ""
-          },
-          {
-            "id": "MetadataUseDevProvider",
-            "value": false
-          },
-          {
-            "id": "SyncMPRootDirectoryOverride",
-            "value": ""
-          },
-          {
-            "id": "MediaServerManagerAllowHttp",
-            "value": false
-          },
-          {
-            "id": "MergedRecentlyAdded",
-            "value": false
-          },
-          {
-            "id": "EnableDatabaseTrace",
-            "value": false
-          }
-        ]
+          {"advanced": false, "default": "", "group": "general", "hidden": false, "id": "FriendlyName", "label": "Friendly name", "summary": "This name will be used to identify this media server to other computers on your network. If you leave it blank, your computer's name will be used instead.", "type": "text", "value": ""},
+          {"advanced": false, "default": true, "group": "general", "hidden": false, "id": "sendCrashReports", "label": "Send crash reports to Plex", "summary": "This helps us improve your experience.", "type": "bool", "value": true},
+          {"advanced": false, "default": false, "group": "library", "hidden": false, "id": "FSEventLibraryUpdatesEnabled", "label": "Scan my library automatically", "summary": "Your library will be updated automatically when changes to library folders are detected.", "type": "bool", "value": false},
+          {"advanced": true, "default": false, "group": "library", "hidden": false, "id": "FSEventLibraryPartialScanEnabled", "label": "Run a partial scan when changes are detected", "summary": "When changes to library folders are detected, only scan the folder that changed.", "type": "bool", "value": false},
+          {"advanced": true, "default": false, "group": "library", "hidden": false, "id": "watchMusicSections", "label": "Include music libraries in automatic updates", "summary": "Linux systems limit the maximum number of watched directories; this may cause problems with large music libraries.", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "library", "hidden": false, "id": "ScheduledLibraryUpdatesEnabled", "label": "Scan my library periodically", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": 3600, "enumValues": "900:every 15 minutes|1800:every 30 minutes|3600:hourly|7200:every 2 hours|21600:every 6 hours|43200:every 12 hours|86400:daily", "group": "library", "hidden": false, "id": "ScheduledLibraryUpdateInterval", "label": "Library scan interval", "summary": "", "type": "int", "value": 3600},
+          {"advanced": false, "default": true, "group": "library", "hidden": false, "id": "autoEmptyTrash", "label": "Empty trash automatically after every scan", "summary": "", "type": "bool", "value": true},
+          {"advanced": true, "default": true, "group": "library", "hidden": false, "id": "allowMediaDeletion", "label": "Allow media deletion", "summary": "The owner of the server will be allowed to delete media files from disk.", "type": "bool", "value": true},
+          {"advanced": false, "default": false, "group": "library", "hidden": true, "id": "allowMediaDeletionLanOnly", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": true, "default": 16, "group": "library", "hidden": false, "id": "OnDeckWindow", "label": "Weeks to consider for Continue Watching", "summary": "Media that has not been watched in this many weeks will not appear in Continue Watching.", "type": "int", "value": 16},
+          {"advanced": true, "default": 40, "group": "library", "hidden": false, "id": "OnDeckLimit", "label": "Maximum number of Continue Watching items which will appear.", "summary": "Limits the number of shows which will appear Continue Watching. Setting it too high can affect performance.", "type": "int", "value": 40},
+          {"advanced": true, "default": true, "group": "library", "hidden": false, "id": "OnDeckIncludePremieres", "label": "Include season premieres in Continue Watching", "summary": "New season premieres will always appear no matter how many weeks have passed since watching.", "type": "bool", "value": true},
+          {"advanced": true, "default": 90, "enumValues": "70:70%|75:75%|80:80%|85:85%|90:90%|95:95%", "group": "library", "hidden": false, "id": "LibraryVideoPlayedThreshold", "label": "Video played threshold", "summary": "Set the progress percentage for video playback at which point the video will be marked as played.", "type": "int", "value": 90},
+          {"advanced": true, "default": true, "group": "library", "hidden": false, "id": "SmartShuffleMusic", "label": "Enable smart shuffling on artists and smart music playlists", "summary": "Smart shuffling prefers highly rated, popular and less recently heard tracks.", "type": "bool", "value": true},
+          {"advanced": false, "default": 0, "group": "library", "hidden": true, "id": "LibraryDefaultVisibility", "label": "", "summary": "", "type": "int", "value": 0},
+          {"advanced": false, "default": 1, "enumValues": "0:All movies|1:Only unwatched movies", "group": "extras", "hidden": false, "id": "CinemaTrailersType", "label": "Choose Cinema Trailers from", "summary": "", "type": "int", "value": 1},
+          {"advanced": false, "default": true, "group": "extras", "hidden": false, "id": "CinemaTrailersFromLibrary", "label": "Include Cinema Trailers from movies in my library", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": false, "group": "extras", "hidden": false, "id": "CinemaTrailersFromTheater", "label": "Include Cinema Trailers from new and upcoming movies in theaters", "summary": "This feature is Plex Pass only.", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "extras", "hidden": false, "id": "CinemaTrailersFromBluRay", "label": "Include Cinema Trailers from new and upcoming movies on Blu-ray", "summary": "This feature is Plex Pass only.", "type": "bool", "value": false},
+          {"advanced": false, "default": true, "group": "extras", "hidden": false, "id": "CinemaTrailersIncludeEnglish", "label": "Always include English language Cinema Trailers for trailers of movies not in my library.", "summary": "", "type": "bool", "value": true},
+          {"advanced": true, "default": "", "group": "extras", "hidden": false, "id": "CinemaTrailersPrerollID", "label": "Movie pre-roll video", "summary": "Enter the full path to the pre-roll video file. If multiple paths separated by commas are entered, videos will be played sequentially. If multiple paths separated by semi-colons are used, a single pre-roll video will be chosen randomly from the list.", "type": "text", "value": ""},
+          {"advanced": true, "default": "", "group": "extras", "hidden": false, "id": "GlobalMusicVideoPath", "label": "Global music videos path", "summary": "A global path to music videos for all music libraries.", "type": "text", "value": ""},
+          {"advanced": true, "default": false, "group": "library", "hidden": false, "id": "iTunesSharingEnabled", "label": "Enable iTunes plugin", "summary": "A server restart is required for a change to take effect.", "type": "bool", "value": false},
+          {"advanced": true, "default": "", "group": "library", "hidden": false, "id": "iTunesLibraryXmlPath", "label": "iTunes library XML path", "summary": "", "type": "text", "value": ""},
+          {"advanced": false, "default": "", "group": "", "hidden": true, "id": "MachineIdentifier", "label": "A unique identifier for the machine", "summary": "", "type": "text", "value": "1cfcd44b-b49c-429a-be29-cf58baab05c9"},
+          {"advanced": false, "default": true, "group": "", "hidden": true, "id": "AllowHighOutputBitrates", "label": "", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": "/web", "group": "network", "hidden": true, "id": "ConfigurationUrl", "label": "Web Manager URL", "summary": "", "type": "text", "value": "/web"},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "AcceptedEULA", "label": "Has the user accepted the EULA", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "LanguageInCloud", "label": "Use language preferences from plex.tv", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": "the,das,der,a,an,el,la", "group": "", "hidden": true, "id": "ArticleStrings", "label": "Comma-separated list of strings considered articles when sorting titles. A server restart is required for a change to take effect.", "summary": "", "type": "text", "value": "the,das,der,a,an,el,la"},
+          {"advanced": false, "default": "0x0", "group": "", "hidden": true, "id": "TranscoderVideoResolutionLimit", "label": "Maximum video output resolution for the transcoder", "summary": "", "type": "text", "value": "0x0"},
+          {"advanced": false, "default": 100, "group": "", "hidden": true, "id": "TranscoderPhotoFileSizeLimitMiB", "label": "", "summary": "", "type": "int", "value": 100},
+          {"advanced": false, "default": true, "group": "network", "hidden": true, "id": "EnableIPv6", "label": "", "summary": "", "type": "bool", "value": true},
+          {"advanced": true, "default": "", "group": "network", "hidden": false, "id": "customCertificatePath", "label": "Custom certificate location", "summary": "Path to a PKCS #12 file containing a certificate and private key to enable TLS support on a custom domain.", "type": "text", "value": ""},
+          {"advanced": true, "default": "", "group": "network", "hidden": false, "id": "customCertificateKey", "label": "Custom certificate encryption key", "summary": "", "type": "text", "value": ""},
+          {"advanced": true, "default": "", "group": "network", "hidden": false, "id": "customCertificateDomain", "label": "Custom certificate domain", "summary": "Domain name to be published to plex.tv using your mapped port; must match a name from the custom certificate file. [IPv4 Only]", "type": "text", "value": ""},
+          {"advanced": true, "default": "", "enumValues": ":Any|eth0:eth0 (<redacted>)", "group": "network", "hidden": false, "id": "PreferredNetworkInterface", "label": "Preferred network interface", "summary": "The network interface local clients will use to connect.", "type": "text", "value": ""},
+          {"advanced": true, "default": false, "group": "network", "hidden": false, "id": "DisableTLSv1_0", "label": "Strict TLS configuration", "summary": "Disables legacy weak ciphers, increases DH group size, and switches to ECDSA certificates when renewing. May prevent older clients from connecting.", "type": "bool", "value": false},
+          {"advanced": false, "default": "", "group": "network", "hidden": true, "id": "allowedHttpOrigins", "label": "", "summary": "", "type": "text", "value": ""},
+          {"advanced": false, "default": 1.0, "group": "network", "hidden": true, "id": "requestLimitsScale", "label": "", "summary": "", "type": "double", "value": 1.0},
+          {"advanced": false, "default": true, "group": "network", "hidden": false, "id": "GdmEnabled", "label": "Enable local network discovery (GDM)", "summary": "This enables the media server to discover other servers and players on the local network.", "type": "bool", "value": true},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "PublishServerOnPlexOnlineKey", "label": "Publish server on Plex Online", "summary": "Publishing a server makes it automatically available on your client devices without any configuration of your router.", "type": "bool", "value": false},
+          {"advanced": false, "default": "", "group": "", "hidden": true, "id": "PlexOnlineMail", "label": "", "summary": "", "type": "text", "value": ""},
+          {"advanced": false, "default": "https://servers.plex.tv", "group": "", "hidden": true, "id": "PlexOnlineUrl", "label": "", "summary": "", "type": "text", "value": "https://servers.plex.tv"},
+          {"advanced": false, "default": "https://app.plex.tv/desktop", "group": "", "hidden": true, "id": "PlexWebDesktopUrl", "label": "", "summary": "", "type": "text", "value": "https://app.plex.tv/desktop"},
+          {"advanced": false, "default": "https://app.plex.tv/auth", "group": "", "hidden": true, "id": "PlexWebAuthUrl", "label": "", "summary": "", "type": "text", "value": "https://app.plex.tv/auth"},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "EnablePinAuth", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "ManualPortMappingMode", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": 32400, "group": "", "hidden": true, "id": "ManualPortMappingPort", "label": "", "summary": "", "type": "int", "value": 32400},
+          {"advanced": false, "default": 0, "group": "", "hidden": true, "id": "LastAutomaticMappedPort", "label": "", "summary": "", "type": "int", "value": 0},
+          {"advanced": false, "default": 0, "enumValues": "0:Automatic|1:Prefer higher speed encoding|2:Prefer higher quality encoding|3:Make my CPU hurt", "group": "transcoder", "hidden": false, "id": "TranscoderQuality", "label": "Transcoder quality", "summary": "Quality profile used by the transcoder.", "type": "int", "value": 0},
+          {"advanced": false, "default": 20, "group": "transcoder", "hidden": true, "id": "SegmentedTranscoderTimeout", "label": "Segmented transcoder timeout", "summary": "Timeout in seconds segmented transcodes wait for the transcoder to begin writing data.", "type": "int", "value": 20},
+          {"advanced": true, "default": "", "group": "transcoder", "hidden": false, "id": "TranscoderTempDirectory", "label": "Transcoder temporary directory", "summary": "Directory to use when transcoding for temporary files. This should ideally be a location on a local physical drive. It is not recommended to set this to a network location or RAM disk.", "type": "text", "value": "/transcode"},
+          {"advanced": true, "default": "", "group": "transcoder", "hidden": false, "id": "DownloadsTempDirectory", "label": "Downloads temporary directory", "summary": "Directory to use when storing transcoded downloads until the client downloads them. This should ideally be a location on a local physical drive. It is not recommended to set this to a network location or RAM disk.", "type": "text", "value": ""},
+          {"advanced": false, "default": 120, "group": "transcoder", "hidden": true, "id": "TranscoderDefaultDuration", "label": "Transcoder default duration", "summary": "Duration in minutes to use when transcoding something with an unknown duration.", "type": "int", "value": 120},
+          {"advanced": true, "default": 60, "group": "transcoder", "hidden": false, "id": "TranscoderThrottleBuffer", "label": "Transcoder default throttle buffer", "summary": "Amount in seconds to buffer before throttling the transcoder.", "type": "int", "value": 60},
+          {"advanced": false, "default": 300, "group": "transcoder", "hidden": true, "id": "TranscoderPruneBuffer", "label": "Transcoder default prune buffer", "summary": "Amount in past seconds to retain before pruning segments from a transcode.", "type": "int", "value": 300},
+          {"advanced": false, "default": 5400, "group": "transcoder", "hidden": true, "id": "TranscoderLivePruneBuffer", "label": "", "summary": "", "type": "int", "value": 5400},
+          {"advanced": false, "default": "veryfast", "group": "transcoder", "hidden": true, "id": "TranscoderH264Preset", "label": "", "summary": "", "type": "text", "value": "veryfast"},
+          {"advanced": true, "default": "veryfast", "enumValues": "ultrafast:Ultra fast|superfast:Super fast|veryfast:Very fast|faster:Faster|fast:Fast|medium:Medium|slow:Slow|slower:Slower|veryslow:Very slow", "group": "transcoder", "hidden": false, "id": "TranscoderH264BackgroundPreset", "label": "Background transcoding x264 preset", "summary": "The x264 preset value used for background transcoding (Sync and Media Optimizer). Slower values will result in better video quality and smaller file sizes, but will take significantly longer to complete processing.", "type": "text", "value": "veryfast"},
+          {"advanced": false, "default": "", "group": "transcoder", "hidden": true, "id": "TranscoderH264Options", "label": "", "summary": "", "type": "text", "value": ""},
+          {"advanced": false, "default": "", "group": "transcoder", "hidden": true, "id": "TranscoderH264OptionsOverride", "label": "", "summary": "", "type": "text", "value": ""},
+          {"advanced": false, "default": 16.0, "group": "transcoder", "hidden": true, "id": "TranscoderH264MinimumCRF", "label": "", "summary": "", "type": "double", "value": 16.0},
+          {"advanced": false, "default": "error", "group": "transcoder", "hidden": true, "id": "TranscoderLogLevel", "label": "", "summary": "", "type": "text", "value": "error"},
+          {"advanced": false, "default": "quiet", "group": "transcoder", "hidden": true, "id": "TranscoderSessionLogLevel", "label": "", "summary": "", "type": "text", "value": "quiet"},
+          {"advanced": false, "default": false, "group": "transcoder", "hidden": true, "id": "TranscoderInputTracing", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "transcoder", "hidden": true, "id": "TranscoderPersistSessionDirs", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": true, "default": false, "group": "transcoder", "hidden": false, "id": "TranscoderCanOnlyRemuxVideo", "label": "Disable video stream transcoding", "summary": "Disable transcoding of the video stream in transcoder operations. With this set, the transcoder may still transcode audio as well as remux video.", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "transcoder", "hidden": true, "id": "TranscoderHEVCEncoding", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": true, "group": "transcoder", "hidden": true, "id": "SystemAudioCodecs", "label": "", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": "", "group": "transcoder", "hidden": true, "id": "VaapiDriver", "label": "", "summary": "", "type": "text", "value": ""},
+          {"advanced": false, "default": "", "group": "transcoder", "hidden": true, "id": "VaapiKernelDriver", "label": "", "summary": "", "type": "text", "value": ""},
+          {"advanced": false, "default": "", "group": "transcoder", "hidden": true, "id": "CLDriver", "label": "", "summary": "", "type": "text", "value": ""},
+          {"advanced": false, "default": 0, "group": "transcoder", "hidden": true, "id": "omxdecExtraOutBufs", "label": "", "summary": "", "type": "int", "value": 0},
+          {"advanced": false, "default": 180, "group": "channels", "hidden": true, "id": "PluginsLaunchTimeout", "label": "Number of seconds to wait before a plugin times out", "summary": "", "type": "int", "value": 180},
+          {"advanced": false, "default": false, "group": "dlna", "hidden": false, "id": "DlnaEnabled", "label": "Enable the DLNA server", "summary": "This allows the server to stream media to DLNA (Digital Living Network Alliance) devices.", "type": "bool", "value": false},
+          {"advanced": false, "default": "OFF", "enumValues": "OFF|FATAL|SEVERE|WARNING|INFO|FINE|FINER|FINEST|ALL", "group": "dlna", "hidden": true, "id": "DlnaPlatinumLoggingLevel", "label": "DLNA server logging level", "summary": "", "type": "text", "value": "OFF"},
+          {"advanced": true, "default": "", "group": "dlna", "hidden": false, "id": "DlnaClientPreferences", "label": "DLNA client preferences", "summary": "Client-specific configuration settings for the DLNA server.", "type": "text", "value": ""},
+          {"advanced": true, "default": true, "group": "dlna", "hidden": false, "id": "DlnaReportTimeline", "label": "DLNA server timeline reporting", "summary": "Enable the DLNA server to report timelines for video play activity.", "type": "bool", "value": true},
+          {"advanced": true, "default": "http-get:*:video/mpeg:*,http-get:*:video/mp4:*,http-get:*:video/vnd.dlna.mpeg-tts:*,http-get:*:video/avi:*,http-get:*:video/x-matroska:*,http-get:*:video/x-ms-wmv:*,http-get:*:video/wtv:*,http-get:*:audio/mpeg:*,http-get:*:audio/mp3:*,http-get:*:audio/mp4:*,http-get:*:audio/x-ms-wma*,http-get:*:audio/wav:*,http-get:*:audio/L16:*,http-get:*image/jpeg:*,http-get:*image/png:*,http-get:*image/gif:*,http-get:*image/tiff:*", "group": "dlna", "hidden": false, "id": "DlnaDefaultProtocolInfo", "label": "DLNA default protocol info", "summary": "Protocol info string used in GetProtocolInfo responses by the DLNA server.", "type": "text", "value": "http-get:*:video/mpeg:*,http-get:*:video/mp4:*,http-get:*:video/vnd.dlna.mpeg-tts:*,http-get:*:video/avi:*,http-get:*:video/x-matroska:*,http-get:*:video/x-ms-wmv:*,http-get:*:video/wtv:*,http-get:*:audio/mpeg:*,http-get:*:audio/mp3:*,http-get:*:audio/mp4:*,http-get:*:audio/x-ms-wma*,http-get:*:audio/wav:*,http-get:*:audio/L16:*,http-get:*image/jpeg:*,http-get:*image/png:*,http-get:*image/gif:*,http-get:*image/tiff:*"},
+          {"advanced": true, "default": 60, "group": "dlna", "hidden": false, "id": "DlnaDeviceDiscoveryInterval", "label": "DLNA media renderer discovery interval", "summary": "Number of seconds between DLNA media renderer discovery requests.", "type": "int", "value": 60},
+          {"advanced": true, "default": 1800, "group": "dlna", "hidden": false, "id": "DlnaAnnouncementLeaseTime", "label": "DLNA server announcement lease time", "summary": "Duration in seconds of DLNA Server SSDP announcement lease time.", "type": "int", "value": 1800},
+          {"advanced": true, "default": "png,jpeg;260x260,120x120,48x48", "group": "dlna", "hidden": false, "id": "DlnaDescriptionIcons", "label": "DLNA server description icons", "summary": "Icons offered by DLNA server when devices request server description.", "type": "text", "value": "png,jpeg;260x260,120x120,48x48"},
+          {"advanced": false, "default": 14400, "group": "", "hidden": true, "id": "SyncMyPlexLoginGCDeferral", "label": "", "summary": "", "type": "int", "value": 14400},
+          {"advanced": false, "default": 100, "group": "", "hidden": true, "id": "SyncPagingItemsLimit", "label": "", "summary": "", "type": "int", "value": 100},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "BackgroundQueueIdlePaused", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": true, "default": false, "group": "library", "hidden": false, "id": "ScannerLowPriority", "label": "Run scanner tasks at a lower priority", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "forceAutoAdjustQuality", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "EnableABRDebugOverlay", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "ABRKeepOldTranscodes", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "ForceABRDisabled", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": true, "default": true, "group": "network", "hidden": false, "id": "RelayEnabled", "label": "Enable Relay", "summary": "The Relay allows connections to the server through a proxy relay when the server is not accessible otherwise.  Note: this proxy relay is bandwidth limited", "type": "bool", "value": true},
+          {"advanced": false, "default": 0, "group": "transcoder", "hidden": true, "id": "TranscodeCountLimit", "label": "", "summary": "", "type": "int", "value": 0},
+          {"advanced": false, "default": 0, "enumValues": "0:Unlimited|1:1|2:2|3:3|4:4|5:5|6:6|7:7|8:8|9:9|10:10|11:11|12:12|13:13|14:14|15:15|16:16|17:17|18:18|19:19|20:20", "group": "transcoder", "hidden": false, "id": "_CPU-TranscodeCountLimit", "label": "Maximum simultaneous CPU transcodes", "summary": "Limit the number of simultaneous video transcode streams your server can utilize on your CPU", "type": "int", "value": 0},
+          {"advanced": false, "default": 1, "enumValues": "0:Unlimited|1:1|2:2|3:3|4:4|5:5|6:6|7:7|8:8|9:9|10:10|11:11|12:12|13:13|14:14|15:15|16:16|17:17|18:18|19:19|20:20", "group": "transcoder", "hidden": false, "id": "OptimizerTranscodeCountLimit", "label": "Maximum simultaneous background video transcode", "summary": "Limit the number of simultaneous video transcode your server can utilize for the optimizer and downloads", "type": "int", "value": 1},
+          {"advanced": true, "default": true, "group": "general", "hidden": false, "id": "logDebug", "label": "Enable Plex Media Server debug logging", "summary": "Debug logging enables additional detail in the log files and is helpful in diagnosing problems.", "type": "bool", "value": true},
+          {"advanced": true, "default": false, "group": "general", "hidden": false, "id": "LogVerbose", "label": "Enable Plex Media Server verbose logging", "summary": "Verbose logging is only useful to debug specific issues and should only be enabled if requested by support staff.", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "LogTokensForDebug", "label": "Allow Plex Media Server tokens in logs", "summary": "Media server tokens can be used to gain access to library content. Don't share logs containing tokens publicly. A server restart is required for a change to take effect.", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "LogMemoryUse", "label": "Add Plex Media Server and System memory use for Debug Logging", "summary": "Logging of the Plex Media Server memory use and the system total used memory in Plex Media Server logs. A server restart is required for the change to take effect.", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "LogSynchronous", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": 60000, "group": "general", "hidden": true, "id": "MinimumProgressTime", "label": "", "summary": "", "type": "int", "value": 60000},
+          {"advanced": true, "default": "", "group": "network", "hidden": false, "id": "customConnections", "label": "Custom server access URLs", "summary": "A comma-separated list of URLs (http or https) which are published up to plex.tv for server discovery. IPv6 addresses must specify a port.", "type": "text", "value": ""},
+          {"advanced": true, "default": "", "group": "network", "hidden": false, "id": "allowedNetworks", "label": "List of IP addresses and networks that are allowed without auth", "summary": "Comma separated list of IP addresses or IP/netmask entries for networks that are allowed to access Plex Media Server without logging in. When the server is signed out and this value is set, only localhost and addresses on this list will be allowed.", "type": "text", "value": ""},
+          {"advanced": true, "default": true, "group": "network", "hidden": false, "id": "WebHooksEnabled", "label": "Webhooks", "summary": "Allow this server to send events to external services.", "type": "bool", "value": true},
+          {"advanced": false, "default": 2, "enumValues": "0:0꞉00|1:1꞉00|2:2꞉00|3:3꞉00|4:4꞉00|5:5꞉00|6:6꞉00|7:7꞉00|8:8꞉00|9:9꞉00|10:10꞉00|11:11꞉00|12:12꞉00|13:13꞉00|14:14꞉00|15:15꞉00|16:16꞉00|17:17꞉00|18:18꞉00|19:19꞉00|20:20꞉00|21:21꞉00|22:22꞉00|23:23꞉00", "group": "butler", "hidden": false, "id": "ButlerStartHour", "label": "Time at which tasks start to run", "summary": "The time at which the server starts running background maintenance tasks.", "type": "int", "value": 2},
+          {"advanced": false, "default": 5, "enumValues": "0:0꞉00|1:1꞉00|2:2꞉00|3:3꞉00|4:4꞉00|5:5꞉00|6:6꞉00|7:7꞉00|8:8꞉00|9:9꞉00|10:10꞉00|11:11꞉00|12:12꞉00|13:13꞉00|14:14꞉00|15:15꞉00|16:16꞉00|17:17꞉00|18:18꞉00|19:19꞉00|20:20꞉00|21:21꞉00|22:22꞉00|23:23꞉00", "group": "butler", "hidden": false, "id": "ButlerEndHour", "label": "Time at which tasks stop running", "summary": "The time at which the background maintenance tasks stop running.", "type": "int", "value": 5},
+          {"advanced": false, "default": true, "group": "butler", "hidden": false, "id": "ButlerTaskBackupDatabase", "label": "Backup database every three days", "summary": "", "type": "bool", "value": true},
+          {"advanced": true, "default": "/config/Library/Application Support/Plex Media Server/Plug-in Support/Databases", "group": "butler", "hidden": false, "id": "ButlerDatabaseBackupPath", "label": "Backup directory", "summary": "The directory in which database backups are stored.", "type": "text", "value": "/config/Library/Application Support/Plex Media Server/Plug-in Support/Databases"},
+          {"advanced": false, "default": true, "group": "butler", "hidden": false, "id": "ButlerTaskOptimizeDatabase", "label": "Optimize database every week", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": true, "group": "butler", "hidden": false, "id": "ButlerTaskCleanOldBundles", "label": "Remove old bundles every week", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": true, "group": "butler", "hidden": false, "id": "ButlerTaskCleanOldCacheFiles", "label": "Remove old cache files every week", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": true, "group": "butler", "hidden": false, "id": "ButlerTaskRefreshLocalMedia", "label": "Refresh local metadata every three days", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": false, "group": "butler", "hidden": false, "id": "ButlerTaskRefreshLibraries", "label": "Update all libraries during maintenance", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": true, "group": "butler", "hidden": false, "id": "ButlerTaskUpgradeMediaAnalysis", "label": "Upgrade media analysis during maintenance", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": true, "group": "butler", "hidden": false, "id": "ButlerTaskRefreshPeriodicMetadata", "label": "Refresh library metadata periodically", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": true, "group": "butler", "hidden": false, "id": "ButlerTaskDeepMediaAnalysis", "label": "Perform extensive media analysis during maintenance", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": true, "group": "butler", "hidden": true, "id": "ButlerTaskGarbageCollectBlobs", "label": "Perform cleanup on blobs database", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": true, "group": "butler", "hidden": true, "id": "ButlerTaskRefreshEpgGuides", "label": "Perform refresh of program guide data.", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": "16", "enumValues": "0:Public", "group": "general", "hidden": false, "id": "ButlerUpdateChannel", "label": "Server update Channel", "summary": "", "type": "text", "value": "16"},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "GenerateIndexFilesDuringAnalysis", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "ButlerTaskGenerateMediaIndexFiles", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": true, "group": "", "hidden": true, "id": "GenerateBIFKeyframesOnly", "label": "", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": "never", "enumValues": "never:never|scheduled:as a scheduled task|asap:as a scheduled task and when media is added", "group": "library", "hidden": false, "id": "GenerateBIFBehavior", "label": "Generate video preview thumbnails", "summary": "Video preview thumbnails provide live updates in Now Playing and while seeking on supported apps. Thumbnail generation may take a long time, cause high CPU usage, and consume additional disk space. You can turn off thumbnail generation for individual libraries in the library's advanced settings.", "type": "text", "value": "never"},
+          {"advanced": false, "default": 2, "group": "library", "hidden": true, "id": "GenerateBIFFrameInterval", "label": "Video preview thumbnail frame duration", "summary": "The time (in seconds) between each video preview frame.", "type": "int", "value": 2},
+          {"advanced": false, "default": "scheduled", "enumValues": "never:never|scheduled:as a scheduled task|asap:as a scheduled task and when media is added", "group": "library", "hidden": false, "id": "GenerateChapterThumbBehavior", "label": "Generate chapter thumbnails", "summary": "Chapter thumbnails provide images in the chapter view on supported apps. They can take a long time to generate and consume additional disk space.", "type": "text", "value": "scheduled"},
+          {"advanced": false, "default": "scheduled", "enumValues": "never:never|scheduled:as a scheduled task|asap:as a scheduled task and when media is added", "group": "library", "hidden": false, "id": "LoudnessAnalysisBehavior", "label": "Analyze audio tracks for loudness", "summary": "Loudness analysis allows various features, such as loudness leveling and smart transitions. It can take a long time to complete when analyzing many tracks, and cause high CPU usage.", "type": "text", "value": "scheduled"},
+          {"advanced": false, "default": 0, "group": "", "hidden": true, "id": "LongRunningJobThreads", "label": "", "summary": "", "type": "int", "value": 0},
+          {"advanced": false, "default": 0, "group": "", "hidden": true, "id": "LoudnessAnalysisThreads", "label": "", "summary": "", "type": "int", "value": 0},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "LoudnessReplayGainStyle", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": 3, "group": "", "hidden": true, "id": "RadioTopTracksPerAlbum", "label": "", "summary": "", "type": "int", "value": 3},
+          {"advanced": false, "default": 2, "group": "", "hidden": true, "id": "RadioDaysSinceLastPlayed", "label": "", "summary": "", "type": "int", "value": 2},
+          {"advanced": false, "default": 15, "group": "", "hidden": true, "id": "RadioDirectoryThreshold", "label": "", "summary": "", "type": "int", "value": 15},
+          {"advanced": false, "default": 50, "group": "", "hidden": true, "id": "RadioDirectoryLimit", "label": "", "summary": "", "type": "int", "value": 50},
+          {"advanced": false, "default": 1, "enumValues": "1:admin only|2:everyone", "group": "library", "hidden": false, "id": "LocationVisibility", "label": "Location visibility", "summary": "Server owners may wish to restrict who can see location names for items which contain geolocation metadata. By default only the server owner will have visibility of these.", "type": "int", "value": 1},
+          {"advanced": true, "default": 40, "group": "library", "hidden": false, "id": "DatabaseCacheSize", "label": "Database Cache Size (MB)", "summary": "Set the size of the main database cache size in MB. Changes take effect when server is restarted.", "type": "int", "value": 40},
+          {"advanced": false, "default": 2, "group": "", "hidden": true, "id": "CertificateVersion", "label": "", "summary": "", "type": "int", "value": 2},
+          {"advanced": false, "default": "", "group": "", "hidden": true, "id": "CertificateUUID", "label": "", "summary": "", "type": "text", "value": ""},
+          {"advanced": false, "default": -1, "group": "", "hidden": true, "id": "enableLocalSecurity", "label": "", "summary": "", "type": "int", "value": -1},
+          {"advanced": false, "default": "", "group": "", "hidden": true, "id": "EyeQUser", "label": "", "summary": "", "type": "text", "value": ""},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "DvrShowUnsupportedDevices", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": true, "group": "", "hidden": true, "id": "DvrComskipRemoveIntermediates", "label": "", "summary": "", "type": "bool", "value": true},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "DvrComskipKeepOriginal", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "SubtitlesPersistIfAdmin", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "DvrIncrementalEpgLoader", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": "", "group": "", "hidden": true, "id": "EpgUseSelectedProvider", "label": "", "summary": "", "type": "text", "value": ""},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "MetadataUseDevProvider", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": "", "group": "", "hidden": true, "id": "SyncMPRootDirectoryOverride", "label": "", "summary": "", "type": "text", "value": ""},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "MediaServerManagerAllowHttp", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "MergedRecentlyAdded", "label": "", "summary": "", "type": "bool", "value": false},
+          {"advanced": false, "default": false, "group": "", "hidden": true, "id": "EnableDatabaseTrace", "label": "", "summary": "", "type": "bool", "value": false}
+        ],
+        "size": 151
       }
     }
   }

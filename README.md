@@ -1,35 +1,32 @@
 # Plex for lemonfiber
 
-**This plugin cannot be installed.** It asks lemonfiber to add a service, to
-watch its health, and to run a first-run flow against it (`service.add`,
-`service.health.http` and `recipe.run`), and lemonfiber does not offer a plugin
-any of the three, so it refuses the install by naming them.
+**This plugin is not ready to install.** Its `plugin.toml` does not run the
+adapter this repository builds yet, and its first-run flow asks Plex for a claim
+Plex answers only to the machine it runs on. It is not in the
+[lemonfiber plugin catalogue](https://github.com/lemonfiber/lemonfiber-plugins).
 
-It is not in the [lemonfiber plugin catalogue](https://github.com/lemonfiber/lemonfiber-plugins),
-and this repository has no instructions for installing it.
+## What it is for
 
-## What `plugin.toml` describes
-
-The manifest here describes Plex Media Server as a service in a lemonfiber stack:
+[Plex Media Server](https://github.com/plexinc/pms-docker) in a lemonfiber stack:
+it serves your movies, TV and music to the Plex apps already on your television,
+and signs the household in through Plex.
 
 - **The service:** Plex Media Server, image `docker.io/plexinc/pms-docker` at tag
   `1.43.4.10903-e5521bd8c`, on port 32400, for the whole household, at
-  `plex.<your domain>` and in the dashboard's Watch group. It mounts your data
-  root and serves movies, TV and music.
-- **A first-run flow:** claim the server with a claim code you fetch from
-  plex.tv, read the server's token, create the libraries, and give the token to
-  the stack's request service.
-- **A secret:** the Plex token, held for the request service, which signs the
-  household in through Plex.
-- **A change to the stack:** the dashboard's Watch entry that points at Jellyfin.
-- **Four checks for `lemonfiber doctor`:**
+  `plex.<your domain>` and in the dashboard's Watch group.
+- **The adapter:** `plex-adapter`, built here and published as
+  `ghcr.io/lemonfiber/plex-adapter`. It claims Plex with the code plex.tv shows
+  you, reads what Plex holds, looks over its libraries again and makes Plex serve
+  its internal TLS port with the certificate lemonfiber makes for it. It tells a
+  guard in front of Plex which paths serve an item's bytes, and answers the
+  guard whether a member may have them by asking Plex with that member's own
+  token.
+- **Two checks for `lemonfiber doctor`:**
 
 | Check | What it notices |
 | --- | --- |
 | Plex has an owner, so nobody else can become one | Nobody has claimed the server, so the first person on your network to reach it becomes its owner |
-| The catalogue still refuses a caller presenting nothing | A setting inside Plex has made the whole library readable by anyone on your network |
 | Plex is not publishing itself to the internet on its own | Plex has opened its own way in from the internet through plex.tv's relay |
-| Every Plex library points where the stack files that media type | A Plex library is scanning a folder the stack does not file that media type into, so it stays empty |
 
 Plex is proprietary software. Its licence is Plex's, and this repository does
 not contain it: it names an image.
@@ -42,11 +39,10 @@ not contain it: it names an image.
 
 ## Licence
 
-The plugin data in this repository is under the Hippocratic License 3.0
-(HL3-CORE); see [LICENSE](LICENSE).
+The plugin data and the adapter in this repository are under the Hippocratic
+License 3.0 (HL3-CORE); see [LICENSE](LICENSE).
 
 ## Working on this plugin
 
-Where the manifest stands against lemonfiber's format, and what is needed for it
-to be accepted: [docs/development.md](docs/development.md). The full design is in
-[SPEC.md](SPEC.md).
+How to work on the manifest and the adapter, and the checks CI runs:
+[AGENTS.md](AGENTS.md).
