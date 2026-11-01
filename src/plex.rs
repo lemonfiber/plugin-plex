@@ -17,6 +17,7 @@ use serde::Deserialize;
 mod declared;
 mod encrypting;
 mod furnishing;
+mod keys;
 mod members;
 mod owning;
 mod preferences;
@@ -74,6 +75,29 @@ pub struct Plex {
 struct Wrapped<T> {
     #[serde(rename = "MediaContainer")]
     container: T,
+}
+
+/// What plex.tv is told the asker is: a Plex Media Server, as its image's first run tells
+/// it.
+const AS_A_SERVER: [(&str, &str); 7] = [
+    ("X-Plex-Product", "Plex Media Server"),
+    ("X-Plex-Version", "1.1"),
+    ("X-Plex-Provides", "server"),
+    ("X-Plex-Platform", "Linux"),
+    ("X-Plex-Platform-Version", "1.0"),
+    ("X-Plex-Device-Name", "PlexMediaServer"),
+    ("X-Plex-Device", "Linux"),
+];
+
+const CLIENT_HEADER: &str = "X-Plex-Client-Identifier";
+
+/// The headers plex.tv is asked with as the server presenting itself as `client`.
+fn as_a_server(client: &str) -> Vec<(String, String)> {
+    AS_A_SERVER
+        .iter()
+        .map(|(name, value)| ((*name).to_owned(), (*value).to_owned()))
+        .chain([(CLIENT_HEADER.to_owned(), client.to_owned())])
+        .collect()
 }
 
 impl Plex {

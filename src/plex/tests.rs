@@ -11,6 +11,7 @@ use super::{an_id, Plex, SUPPORT};
 mod declared;
 mod encrypting;
 mod furnishing;
+mod keys;
 mod members;
 mod screening;
 mod serving;

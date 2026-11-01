@@ -1,7 +1,7 @@
 use lemonfiber_fixtures::http::{Answer, Fake};
 use lemonfiber_ports::http::Method;
 use lemonfiber_ports::media::Kind;
-use lemonfiber_ports::service::{AppKeys as _, Failure, Fronted as _, Library as _, Upkeep as _};
+use lemonfiber_ports::service::{Failure, Fronted as _, Library as _, Upkeep as _};
 
 use super::{asked, plex, Shared, TOKEN};
 
@@ -120,7 +120,7 @@ async fn an_item_is_read_afresh_where_plex_holds_it() {
 }
 
 #[tokio::test]
-async fn proxies_origins_restarts_and_keys_are_unsupported() {
+async fn proxies_origins_and_restarts_are_unsupported() {
     let shared = Shared::claimed("unsupported");
     let fake = Fake::silent();
     let plex = plex(&fake, &shared);
@@ -130,10 +130,5 @@ async fn proxies_origins_restarts_and_keys_are_unsupported() {
     assert!(unsupported(&plex.allowed_origins().await));
     assert!(unsupported(&plex.allow_only("https://a.example").await));
     assert!(unsupported(&plex.restart().await));
-    assert!(unsupported(&plex.filed_as("app").await));
-    assert!(unsupported(&plex.mint("app").await));
-    assert!(unsupported(&plex.dated("app").await));
-    assert!(unsupported(&plex.answers_to("key").await));
-    assert!(unsupported(&plex.revoke("key").await));
     assert!(fake.requests().is_empty());
 }

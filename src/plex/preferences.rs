@@ -42,6 +42,11 @@ pub(super) fn online_token(preferences: &[u8]) -> Option<String> {
     attribute(preferences, ONLINE_TOKEN)
 }
 
+/// The identifier Plex presents to plex.tv, where its preferences name one.
+pub(super) fn client(preferences: &[u8]) -> Option<String> {
+    attribute(preferences, CLIENT)
+}
+
 /// Plex's preferences, read once, as a claim rewrites them: the identifier Plex presents
 /// to plex.tv, under which a claim code is exchanged, and every byte around the
 /// `Preferences` element, which the token is written into.
