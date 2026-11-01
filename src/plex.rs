@@ -68,6 +68,7 @@ pub struct Plex {
     support: Shared,
     code: Arc<dyn Holding>,
     internal_tls: Option<Https>,
+    kept: Option<keys::Kept>,
 }
 
 /// What every answer Plex gives in JSON is wrapped in.
@@ -122,6 +123,17 @@ impl Plex {
             http,
             support,
             code,
+            kept: None,
+        }
+    }
+
+    /// The same Plex, keeping the accounts it makes as apps' keys in its own
+    /// configuration directory `directory`.
+    #[must_use]
+    pub fn keeping_accounts_in(self, directory: &Path) -> Self {
+        Self {
+            kept: Some(keys::Kept::in_directory(directory)),
+            ..self
         }
     }
 

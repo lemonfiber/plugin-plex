@@ -13,6 +13,10 @@ use serde::Deserialize;
 
 use super::{as_a_server, preferences, Plex, IDENTITY};
 
+mod kept;
+
+pub(super) use kept::Kept;
+
 const HOME_USERS: &str = "/api/home/users";
 
 const WHO: &str = "/api/v2/user";
@@ -23,6 +27,9 @@ const SECTIONS: &str = "/library/sections";
 const TITLED: &str = "lemonfiber-";
 
 const ACCOUNT: &str = "User";
+
+/// How plex.tv flags a Home account as managed, or as its administrator.
+const FLAGGED: &str = "1";
 
 const SWITCHED: &str = "authenticationToken";
 
@@ -38,6 +45,9 @@ const LONGEST_APP: usize = 40;
 struct HomeUser {
     id: String,
     title: String,
+    /// Whether it is a managed account and no administrator: one the claiming account
+    /// made, which signs in to plex.tv as nobody else.
+    managed: bool,
 }
 
 #[derive(Deserialize)]
@@ -107,12 +117,14 @@ fn attributes(xml: &str, element: &str, names: &[&str]) -> Vec<Vec<Option<String
 
 /// The accounts of the Plex Home `xml` lists.
 fn home_users(xml: &str) -> Vec<HomeUser> {
-    attributes(xml, ACCOUNT, &["id", "title"])
+    attributes(xml, ACCOUNT, &["id", "title", "restricted", "admin"])
         .into_iter()
         .filter_map(|read| match read.as_slice() {
-            [Some(id), Some(title)] if super::an_id(id) => Some(HomeUser {
+            [Some(id), Some(title), restricted, admin] if super::an_id(id) => Some(HomeUser {
                 id: id.clone(),
                 title: title.clone(),
+                managed: restricted.as_deref() == Some(FLAGGED)
+                    && admin.as_deref() != Some(FLAGGED),
             }),
             _ => None,
         })
@@ -193,13 +205,51 @@ impl Plex {
         }
     }
 
-    /// Every account of the claiming account's Plex Home titled `title`.
-    async fn home_titled(&self, title: &str) -> Result<Vec<HomeUser>, Failure> {
+    /// Every managed account of the claiming account's Plex Home.
+    async fn home(&self) -> Result<Vec<HomeUser>, Failure> {
         let response = self.as_owner(Method::Get, HOME_USERS, None).await?;
-        Ok(home_users(&response.body)
+        Ok(home_users(&response.body))
+    }
+
+    /// Where the accounts made as apps' keys are kept, refused where nothing keeps them.
+    fn kept(&self) -> Result<&Kept, Failure> {
+        self.kept.as_ref().ok_or_else(|| {
+            self.accounts
+                .refused("this adapter keeps no record of the accounts it makes")
+        })
+    }
+
+    /// What reading or writing the record of the accounts made came to, as a failure.
+    fn unkept(&self, why: &str) -> Failure {
+        self.accounts.refused(why)
+    }
+
+    /// The managed accounts of the Home titled for `app` that this adapter made for it.
+    async fn made_for(&self, app: &str) -> Result<Vec<HomeUser>, Failure> {
+        let title = titled(app).ok_or_else(|| Self::not_an_app(app))?;
+        let home = self.home().await?;
+        let made = self
+            .kept()?
+            .read()
+            .map_err(|why| self.unkept(&why))?
+            .of(app);
+        Ok(home
             .into_iter()
-            .filter(|user| user.title == title)
+            .filter(|user| user.managed && user.title == title && made.contains(&user.id))
             .collect())
+    }
+
+    /// Whether Plex refuses `key`: true where it answers that it does not take it, false
+    /// where it serves it, and a failure for anything else.
+    async fn server_refuses(&self, key: &str) -> Result<bool, Failure> {
+        let response = self
+            .endpoint
+            .send(&self.request(Method::Get, SECTIONS, Some(key)))
+            .await?;
+        if response.status == REFUSED_THE_TOKEN {
+            return Ok(true);
+        }
+        self.endpoint.expect_success(&response).map(|()| false)
     }
 
     /// The token of the Home account `id`, switched to as the claiming account.
@@ -278,18 +328,16 @@ impl Plex {
 #[async_trait]
 impl AppKeys for Plex {
     async fn filed_as(&self, app: &str) -> Result<Vec<String>, Failure> {
-        let title = titled(app).ok_or_else(|| Self::not_an_app(app))?;
         let mut keys = Vec::new();
-        for user in self.home_titled(&title).await? {
+        for user in self.made_for(app).await? {
             keys.push(self.switched_to(&user.id).await?);
         }
         Ok(keys)
     }
 
     async fn dated(&self, app: &str) -> Result<Vec<Dated>, Failure> {
-        let title = titled(app).ok_or_else(|| Self::not_an_app(app))?;
         Ok(self
-            .home_titled(&title)
+            .made_for(app)
             .await?
             .iter()
             .map(|_| Dated {
@@ -301,60 +349,77 @@ impl AppKeys for Plex {
 
     async fn mint(&self, app: &str) -> Result<String, Failure> {
         let title = titled(app).ok_or_else(|| Self::not_an_app(app))?;
-        let before = self.home_titled(&title).await?;
+        let kept = self.kept()?;
+        let before = self.home().await?;
         let asked = form_encoded(&[("title", &title)]);
         self.as_owner(Method::Post, &format!("{HOME_USERS}?{asked}"), None)
             .await?;
         let made: Vec<HomeUser> = self
-            .home_titled(&title)
+            .home()
             .await?
             .into_iter()
-            .filter(|user| !before.contains(user))
+            .filter(|user| user.managed && user.title == title && !before.contains(user))
             .collect();
         let [made] = made.as_slice() else {
-            return Err(self
-                .accounts
-                .refused("plex.tv did not answer with exactly one new account for the app"));
+            return Err(self.accounts.refused(
+                "plex.tv did not answer with exactly one new managed account for the app",
+            ));
         };
+        if let Err(why) = kept.made(app, &made.id) {
+            let _ = self.removed(&made.id).await;
+            return Err(self.unkept(&why));
+        }
         let minted = async {
             self.shared_with(&made.id).await?;
             self.switched_to(&made.id).await
         }
         .await;
-        if minted.is_err() {
-            let _ = self.removed(&made.id).await;
+        if minted.is_err() && self.removed(&made.id).await.is_ok() {
+            let _ = kept.gone(&made.id);
         }
         minted
     }
 
     async fn answers_to(&self, key: &str) -> Result<(), Failure> {
-        let response = self
-            .endpoint
-            .send(&self.request(Method::Get, SECTIONS, Some(key)))
-            .await?;
-        if response.status == REFUSED_THE_TOKEN {
+        if self.server_refuses(key).await? {
             return Err(self.endpoint.unauthorised());
         }
-        self.endpoint.expect_success(&response)
+        Ok(())
     }
 
     async fn revoke(&self, key: &str) -> Result<(), Failure> {
-        self.admin_token().await?;
+        let owner = self.admin_token().await?;
+        let kept = self.kept()?;
         let Some(id) = self.whose(key).await? else {
-            return Ok(());
+            return if self.server_refuses(key).await? {
+                Ok(())
+            } else {
+                Err(self
+                    .accounts
+                    .refused("plex.tv refuses the key and Plex still takes it"))
+            };
         };
-        let response = self.as_owner(Method::Get, HOME_USERS, None).await?;
-        let home = home_users(&response.body);
-        let Some(account) = home.iter().find(|user| user.id == id) else {
+        if self.whose(&owner).await?.as_deref() == Some(id.as_str()) {
             return Err(self
                 .accounts
-                .refused("the key is no account of the claiming account's Plex Home"));
-        };
-        if !account.title.starts_with(TITLED) {
-            return Err(self
-                .accounts
-                .refused("the key is a Home account no app's key was made as"));
+                .refused("the key is the claiming account's own, which no app's key is"));
         }
-        self.removed(&account.id).await
+        let made = kept.read().map_err(|why| self.unkept(&why))?;
+        let home = self.home().await?;
+        let ours = home
+            .iter()
+            .any(|user| user.id == id && user.managed && user.title.starts_with(TITLED));
+        if !ours || !made.holds(&id) {
+            return Err(self
+                .accounts
+                .refused("the key is no managed account this adapter made for an app"));
+        }
+        self.removed(&id).await?;
+        if self.whose(key).await?.is_some() || !self.server_refuses(key).await? {
+            return Err(self
+                .accounts
+                .refused("the account was removed and the key is still taken"));
+        }
+        kept.gone(&id).map_err(|why| self.unkept(&why))
     }
 }
