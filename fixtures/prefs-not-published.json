@@ -33,7 +33,7 @@
           {"advanced": true, "default": "", "group": "extras", "hidden": false, "id": "GlobalMusicVideoPath", "label": "Global music videos path", "summary": "A global path to music videos for all music libraries.", "type": "text", "value": ""},
           {"advanced": true, "default": false, "group": "library", "hidden": false, "id": "iTunesSharingEnabled", "label": "Enable iTunes plugin", "summary": "A server restart is required for a change to take effect.", "type": "bool", "value": false},
           {"advanced": true, "default": "", "group": "library", "hidden": false, "id": "iTunesLibraryXmlPath", "label": "iTunes library XML path", "summary": "", "type": "text", "value": ""},
-          {"advanced": false, "default": "", "group": "", "hidden": true, "id": "MachineIdentifier", "label": "A unique identifier for the machine", "summary": "", "type": "text", "value": "1cfcd44b-b49c-429a-be29-cf58baab05c9"},
+          {"advanced": false, "default": "", "group": "", "hidden": true, "id": "MachineIdentifier", "label": "A unique identifier for the machine", "summary": "", "type": "text", "value": "a95cc3d6-8856-4cea-a2f1-ee7d87806c4a"},
           {"advanced": false, "default": true, "group": "", "hidden": true, "id": "AllowHighOutputBitrates", "label": "", "summary": "", "type": "bool", "value": true},
           {"advanced": false, "default": "/web", "group": "network", "hidden": true, "id": "ConfigurationUrl", "label": "Web Manager URL", "summary": "", "type": "text", "value": "/web"},
           {"advanced": false, "default": false, "group": "", "hidden": true, "id": "AcceptedEULA", "label": "Has the user accepted the EULA", "summary": "", "type": "bool", "value": false},

@@ -1,0 +1,10 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "Plex has no equivalent, so the adapter answers unsupported and the core never relies on it: no list of addresses trusted to name the client is set through its API.",
+  "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/trust_only", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "Plex holds no list of addresses trusted to name the client its API sets", "type": "unsupported"}
+  }
+}

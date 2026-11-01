@@ -1,0 +1,10 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "Plex has no equivalent, so the adapter answers unsupported and the core never relies on it: every token Plex takes is one plex.tv issued, so it holds no keys of its own for an app.",
+  "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/mint", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "Plex holds no keys of its own for an app: every token it takes is one plex.tv issued", "type": "unsupported"}
+  }
+}

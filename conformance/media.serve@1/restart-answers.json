@@ -1,0 +1,10 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "Plex has no equivalent, so the adapter answers unsupported and the core never relies on it: this adapter never asks it to start again.",
+  "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/restart", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "Plex is not asked to start again by this adapter", "type": "unsupported"}
+  }
+}
