@@ -1,0 +1,10 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "Names a member, and no identity.source is spoken here to name one, so the recorder asks nothing and records it unsupported.",
+  "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/signed_in", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "it speaks no identity.source@1, which identity.source@1/household-answers is a case of", "type": "unsupported"}
+  }
+}

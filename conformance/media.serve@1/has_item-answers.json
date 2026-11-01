@@ -1,0 +1,10 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "Plex is still open after the stand-in code was refused, so it keeps no token for an account, and the adapter answers that Plex rejected the credential without asking it anything as nobody.",
+  "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/has_item", "accept": "application/json"},
+  "response": {
+    "status": 502,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "plex rejected the credential", "type": "unauthorised"}
+  }
+}

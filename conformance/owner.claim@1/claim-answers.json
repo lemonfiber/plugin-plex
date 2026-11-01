@@ -1,0 +1,10 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "Claimed first, with the stand-in for the code plex.tv shows the operator: the adapter exchanged it at plex.tv under the identifier Plex presents there, plex.tv refused it, and the adapter answers that the credential was rejected. Taken locally, because it reaches plex.tv; record --check leaves it as recorded.",
+  "request": {"method": "POST", "path": "/lemonfiber/owner.claim/v1/claim", "accept": "application/json"},
+  "response": {
+    "status": 502,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "plex.tv rejected the credential", "type": "unauthorised"}
+  }
+}

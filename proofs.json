@@ -1,5 +1,5 @@
 {
-  "lemonfiber": "0d8245e1af6579fbc5b2e186c21597475b18dc0d",
+  "lemonfiber": "792d5728a30b6a3d6fdf6d43a8afdbe0c5b9151b",
   "against": "recordings",
   "proofs": [
     {
@@ -7,21 +7,6 @@
       "kind": "proof",
       "outcome": "passed",
       "detail": ""
-    },
-    {
-      "id": "plex:claimed",
-      "kind": "check",
-      "outcome": "failing-as-declared",
-      "detail": "fails as declared on fixtures/identity-anonymous.json: json at /MediaContainer/claimed held false. The one recording there is comes from a server nobody has claimed, so it holds claimed: false, the answer this check exists to catch. A recording of a claimed server needs a plex.tv account.",
-      "declared": [
-        {
-          "fixture": "fixtures/identity-anonymous.json",
-          "constraint": "json",
-          "place": "/MediaContainer/claimed",
-          "held": "false",
-          "reason": "The one recording there is comes from a server nobody has claimed, so it holds claimed: false, the answer this check exists to catch. A recording of a claimed server needs a plex.tv account."
-        }
-      ]
     },
     {
       "id": "plex:not-published",

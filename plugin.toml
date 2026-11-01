@@ -1,4 +1,4 @@
-#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/0d8245e1af6579fbc5b2e186c21597475b18dc0d/contract/plugin-manifest.schema.json
+#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/792d5728a30b6a3d6fdf6d43a8afdbe0c5b9151b/contract/plugin-manifest.schema.json
 # Plex, as a lemonfiber plugin.
 #
 # Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md
@@ -50,6 +50,9 @@ criticality = "important"
 takes_data  = true
 media_types = ["movies", "tv", "music"]
 config_path = "/config"
+# Plex drops to the ids it reads from PLEX_UID and PLEX_GID, so it runs as the operator
+# and its files share an owner with the adapter that reads them beside it.
+user_mode   = { uid_env = "PLEX_UID", gid_env = "PLEX_GID" }
 # Two core names out of the published vocabulary and one of this plugin's own.
 # The core pair is the whole point: `identity.source` has exactly one bundled
 # declarer, so this is where substituting a plugin for a bundled service is worth
@@ -57,11 +60,34 @@ config_path = "/config"
 # nothing bundled consumes it — which is what F4's own example says it should be.
 provides = ["plex:direct-play"]
 
+# The adapter that speaks lemonfiber's contracts in front of Plex. It reads the
+# token Plex keeps from the configuration directory it shares with Plex, and
+# claims an open Plex with the code plex.tv shows the operator (ARCH-R328).
+[[service]]
+id            = "plex-adapter"
+name          = "Plex adapter"
+image         = "ghcr.io/lemonfiber/plex-adapter"
+digest        = "sha256:96ce0251e3333c9db4ddb7ca55ac0432231250f63026e798c24faaf8668fac11"
+tag           = "main-5d3ef255528e"
+criticality   = "enhancing"
+reaches       = "plex.tv"
+asks_for      = "Exchanges the claim code the operator entered at plex.tv, once, to claim Plex. Everything else it answers lemonfiber's owner.claim and media.serve contracts with comes from Plex, beside it."
+config_path   = "/config"
+listens       = 8080
+speaks        = ["owner.claim@1", "media.serve@1"]
+fronts        = "plex"
+provides      = ["media.serve"]
+media_types   = ["movies", "tv", "music"]
+shares_config = "/plex"
+upstream      = { code = { secret = "claim" } }
+outside       = { "owner.claim@1/claim-answers" = "plex.tv" }
+
 # ─── Wiring ──────────────────────────────────────────────────────────────────
 
 # A list, and one entry, because wiring is a fact about a service rather than
 # about a plugin (ARCH-R127). One service here, so the entry names none.
 [[wiring]]
+service         = "plex"
 hostname        = "plex"
 dashboard_group = "Watch"
 
@@ -72,27 +98,13 @@ dashboard_group = "Watch"
 # analysis a check over an empty set.
 
 [[recipe]]
-id    = "claim-and-furnish"
-title = "Claim the server, then point it at the library the stack already fills"
+id    = "furnish"
+title = "Point the claimed server at the library the stack already fills"
 why   = """
-A Plex server that has not been claimed belongs to whoever reaches it first, and \
-an unclaimed server on the household network is the same defect an unclaimed \
-Komga is. Claiming it is also the only way to obtain the token everything else \
-here needs, so the two are one flow rather than two.\
+Once the adapter has claimed Plex, Plex keeps the token of the account that \
+claimed it, and making the libraries and telling the request service which Plex \
+serves them both take that token, so the two are one flow rather than two.\
 """
-
-# `operator` is the one origin that means the person typed this. The code expires
-# four minutes after plex.tv issues it, which is why it is asked for when the
-# recipe runs rather than held in a form filled out earlier.
-[[recipe.input]]
-name   = "claim"
-origin = "operator"
-ask    = "The claim code plex.tv/claim shows you, which expires four minutes after it is issued"
-
-[[recipe.step]]
-id     = "claim"
-call   = { method = "POST", to = "plex", path = "/:/claim?token={{claim}}" }
-expect = { status = 200 }
 
 [[recipe.step]]
 id      = "read-the-token"
@@ -111,10 +123,6 @@ call   = { method = "POST", to = "seerr", path = "/api/v1/settings/plex", header
 expect = { status = 200 }
 
 [[recipe.pair]]
-value = "claim"
-to    = "plex"
-
-[[recipe.pair]]
 value = "plex_token"
 to    = "plex"
 
@@ -125,12 +133,14 @@ release = "The request service signs the household in through Plex, so it is han
 
 # ─── What is held, and what bundled thing changes ────────────────────────────
 
-# One declaration per value the first-run flow holds, named as the recipe names
-# it: the claim code the operator types, and the token Plex hands back.
+# One declaration per value held: the claim code the operator types, which the
+# adapter claims Plex with, and the token Plex hands back to the first-run flow.
 [[secret]]
-id  = "claim"
-of  = "plex"
-why = "Claiming the server is what makes it the household's rather than whoever reaches it first"
+id            = "claim"
+of            = "plex"
+why           = "The code plex.tv shows the operator at plex.tv/claim, which claims this server for their account: claiming it is what makes it the household's rather than whoever reaches it first"
+lapses_s      = 240
+recorded_with = "claim-recorded-stand-in"
 
 [[secret]]
 id  = "plex_token"
@@ -153,28 +163,8 @@ why = "The request service is told which Plex serves the library, and signs the 
 
 [[contribution]]
 at        = "doctor.check"
-id        = "plex:claimed"
-title     = "Plex has an owner, so nobody else can become one"
-category  = "services"
-request   = { method = "GET", path = "/identity", accept = "application/json", varies = { "/MediaContainer/machineIdentifier" = "^[0-9a-f]{40}$" } }
-expect    = { status = 200, json = { "/MediaContainer/claimed" = true } }
-fixture   = "fixtures/identity-anonymous.json"
-expected  = [
-    { fixture = "fixtures/identity-anonymous.json", verdict = "fails", constraint = "json", place = "/MediaContainer/claimed", reason = "The one recording there is comes from a server nobody has claimed, so it holds claimed: false, the answer this check exists to catch. A recording of a claimed server needs a plex.tv account." },
-]
-timeout_s = 10
-why       = "An unclaimed Plex server hands ownership to whoever reaches it first."
-
-[[contribution]]
-at     = "doctor.remedy"
-id     = "plex:claim-it"
-for    = "plex:claimed"
-action = "Fetch a claim code from plex.tv/claim and run the plugin's first-run flow again"
-why    = "Until somebody does, the first caller on the household network becomes the owner."
-
-[[contribution]]
-at        = "doctor.check"
 id        = "plex:not-published"
+service   = "plex"
 title     = "Plex is not publishing itself to the internet on its own"
 category  = "network"
 request   = { method = "GET", path = "/:/prefs", accept = "application/json", varies = { "/MediaContainer/Setting/119/enumValues" = "^[0-9]+:[A-Za-z]+$" } }
@@ -211,6 +201,7 @@ capabilities = [
 
 [[proof]]
 id      = "identity-before-claim"
+service = "plex"
 title   = "It says which server it is before anybody has claimed it"
 fixture = "fixtures/identity-anonymous.json"
 why     = "Something has to be answerable before authentication or nothing could ever authenticate, and this is the part with nothing of the household's in it."

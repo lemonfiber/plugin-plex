@@ -1,0 +1,10 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "Asked after the refused claim: Plex's /identity still says nobody has claimed it, so it is open.",
+  "request": {"method": "POST", "path": "/lemonfiber/owner.claim/v1/owner", "accept": "application/json"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json"},
+    "json": "open"
+  }
+}

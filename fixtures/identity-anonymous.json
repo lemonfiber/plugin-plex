@@ -6,7 +6,7 @@
     "status": 200,
     "headers": {"content-type": "application/json"},
     "json": {
-      "MediaContainer": {"apiVersion": "1.2.3", "claimed": false, "machineIdentifier": "a4da3135a9c903d0ade73dd5fed3d1bf815f7185", "size": 0, "startState": "startingPlugins", "version": "1.43.4.10903-e5521bd8c"}
+      "MediaContainer": {"apiVersion": "1.2.3", "claimed": false, "machineIdentifier": "919db4b1302edaecbd72cec9da36f1816a0846cb", "size": 0, "startState": "startingPlugins", "version": "1.43.4.10903-e5521bd8c"}
     }
   }
 }
