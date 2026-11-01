@@ -27,7 +27,8 @@ const ONE_TITLED: &str = r#"<MediaContainer size="2"><User id="1" title="Owner" 
 /// member who took the app's title as their own plex.tv name; and a member.
 const HOME: &str = r#"<MediaContainer size="5"><User id="1" title="Owner" admin="1"/><User id="77" title="lemonfiber-request-gate" restricted="1"/><User id="78" title="lemonfiber-request-gate" restricted="1"/><User id="80" title="lemonfiber-request-gate" email="someone@example.org"/><User id="90" title="Ana" restricted="1"/></MediaContainer>"#;
 
-const SWITCHED: &str = r#"<user id="77" title="lemonfiber-request-gate" authenticationToken="managed-account-token"/>"#;
+const SWITCHED: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<user id="77" title="lemonfiber-request-gate" authenticationToken="managed-account-token"/>"#;
 
 const IDENTITY: &str = r#"{"MediaContainer":{"claimed":true,"machineIdentifier":"the-machine"}}"#;
 
@@ -406,4 +407,143 @@ async fn the_server_answering_a_key_is_asked_with_that_key_alone() {
             Some(MINTED)
         );
     }
+}
+
+#[tokio::test]
+async fn a_plex_keeping_no_record_of_its_accounts_makes_and_lists_none() {
+    let shared = presenting("keys-unkept");
+    let fake = Fake::always(Answer::reply(200, HOME));
+    let plex = super::super::Plex::new(
+        fake.clone(),
+        super::BASE,
+        shared.path(),
+        Arc::new("claim-0123456789abcdef".to_owned()),
+    );
+
+    assert!(matches!(plex.mint(APP).await, Err(Failure::Refused { .. })));
+    assert!(matches!(
+        plex.filed_as(APP).await,
+        Err(Failure::Refused { .. })
+    ));
+    assert!(!fake.asked_for("?title="));
+}
+
+#[tokio::test]
+async fn a_plex_naming_no_identifier_for_plex_tv_asks_plex_tv_nothing() {
+    let shared = Shared::claimed("keys-no-client");
+    let fake = Fake::always(Answer::reply(200, HOME));
+    let plex = plex(&fake, &shared);
+
+    assert!(matches!(plex.mint(APP).await, Err(Failure::Refused { .. })));
+    assert!(fake.requests().is_empty());
+}
+
+#[tokio::test]
+async fn a_record_that_cannot_be_read_lists_and_revokes_nothing() {
+    let shared = presenting("keys-unreadable");
+    let _ = std::fs::write(
+        shared.adapter().join("plex-app-accounts.json"),
+        "not a record",
+    );
+    let listing = Fake::by_route(vec![(
+        Method::Get,
+        "https://plex.tv/api/home/users",
+        Answer::reply(200, HOME),
+    )]);
+    assert!(plex(&listing, &shared).filed_as(APP).await.is_err());
+    let fake = revoking(who(77), refused(), refused());
+    let plex = plex(&fake, &shared);
+
+    assert!(plex.revoke(MINTED).await.is_err());
+    assert!(deleted(&fake).is_empty());
+}
+
+#[tokio::test]
+async fn a_revocation_that_cannot_be_recorded_is_a_failure() {
+    use std::os::unix::fs::PermissionsExt as _;
+    let shared = presenting("keys-unrecorded");
+    having_made(&shared, &["77"]);
+    let fake = revoking(who(77), refused(), refused());
+    let plex = plex(&fake, &shared);
+    let _ = std::fs::set_permissions(shared.adapter(), std::fs::Permissions::from_mode(0o500));
+
+    let revoked = plex.revoke(MINTED).await;
+    let _ = std::fs::set_permissions(shared.adapter(), std::fs::Permissions::from_mode(0o700));
+    assert!(revoked.is_err(), "{revoked:?}");
+}
+
+#[tokio::test]
+async fn answers_plex_tv_gives_unreadably_are_failures_not_guesses() {
+    let shared = presenting("keys-unreadable-answers");
+    having_made(&shared, &["77"]);
+    let unnamed = Fake::by_route_in_turn(vec![(
+        Method::Get,
+        WHO,
+        vec![Answer::reply(200, "not json")],
+    )]);
+    assert!(plex(&unnamed, &shared).revoke(MINTED).await.is_err());
+    assert!(deleted(&unnamed).is_empty());
+
+    let tokenless = Fake::by_route(vec![
+        (
+            Method::Get,
+            "https://plex.tv/api/home/users",
+            Answer::reply(200, HOME),
+        ),
+        (Method::Post, "/switch", Answer::reply(201, "")),
+    ]);
+    assert!(matches!(
+        plex(&tokenless, &shared).filed_as(APP).await,
+        Err(Failure::Refused { .. })
+    ));
+
+    let unlisted = Fake::by_route(vec![(
+        Method::Get,
+        "https://plex.tv/api/home/users",
+        Answer::reply(
+            200,
+            r#"<MediaContainer><User title="lemonfiber-request-gate" restricted="1"/><User id="77"/></MediaContainer>"#,
+        ),
+    )]);
+    assert_eq!(
+        plex(&unlisted, &shared).filed_as(APP).await.ok(),
+        Some(Vec::new())
+    );
+}
+
+#[tokio::test]
+async fn an_account_plex_tv_names_past_any_number_is_never_shared_anything() {
+    let shared = presenting("keys-mint-huge-id");
+    let huge = r#"<MediaContainer size="2"><User id="1" title="Owner" admin="1"/><User id="99999999999999999999" title="lemonfiber-request-gate" restricted="1"/></MediaContainer>"#;
+    let fake = Fake::by_route_in_turn(vec![
+        (
+            Method::Get,
+            "https://plex.tv/api/home/users",
+            vec![Answer::reply(200, NONE_TITLED), Answer::reply(200, huge)],
+        ),
+        (
+            Method::Post,
+            "https://plex.tv/api/home/users?title=",
+            vec![Answer::reply(201, "")],
+        ),
+        (
+            Method::Delete,
+            "/api/home/users/",
+            vec![Answer::reply(200, "")],
+        ),
+        (Method::Get, "/identity", vec![Answer::reply(200, IDENTITY)]),
+        (
+            Method::Get,
+            "/library/sections",
+            vec![Answer::reply(200, SECTIONS)],
+        ),
+    ]);
+    let plex = plex(&fake, &shared);
+
+    assert!(plex.mint(APP).await.is_err());
+    assert!(!fake.asked_for("/shared_servers"));
+    assert_eq!(
+        deleted(&fake),
+        ["https://plex.tv/api/home/users/99999999999999999999"]
+    );
 }

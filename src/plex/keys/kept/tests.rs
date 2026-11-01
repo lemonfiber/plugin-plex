@@ -47,3 +47,15 @@ fn a_directory_that_cannot_be_written_is_said() {
 
     assert!(kept.made("gate", "77").is_err());
 }
+
+#[test]
+fn a_record_that_cannot_be_opened_is_said_rather_than_read_as_empty() {
+    let at = directory("unopened");
+    let _ = std::fs::create_dir_all(at.join(super::KEPT_FILE));
+    let kept = Kept::in_directory(&at);
+
+    assert!(kept
+        .read()
+        .is_err_and(|why| why.contains("could not be read")));
+    let _ = std::fs::remove_dir_all(&at);
+}
