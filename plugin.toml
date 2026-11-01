@@ -1,4 +1,4 @@
-#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/792d5728a30b6a3d6fdf6d43a8afdbe0c5b9151b/contract/plugin-manifest.schema.json
+#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/7142e058281d42d42deb7440c378f453e22f0f4a/contract/plugin-manifest.schema.json
 # Plex, as a lemonfiber plugin.
 #
 # Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md
@@ -61,8 +61,9 @@ user_mode   = { uid_env = "PLEX_UID", gid_env = "PLEX_GID" }
 provides = ["plex:direct-play"]
 
 # The adapter that speaks lemonfiber's contracts in front of Plex. It reads the
-# token Plex keeps from the configuration directory it shares with Plex, and
-# claims an open Plex with the code plex.tv shows the operator (ARCH-R328).
+# token Plex keeps from the configuration directory it shares with Plex, claims an
+# open Plex with the code plex.tv shows the operator (ARCH-R328), and makes an app's
+# key a managed account in the claiming account's Plex Home (ARCH-R370).
 [[service]]
 id            = "plex-adapter"
 name          = "Plex adapter"
@@ -71,7 +72,7 @@ digest        = "sha256:5231ed98bf17726dab11aa0f715f3665117ea0f8058c80709eda223f
 tag           = "main-89c80882d4e8"
 criticality   = "enhancing"
 reaches       = "plex.tv"
-asks_for      = "Exchanges the claim code the operator entered at plex.tv, once, to claim Plex. Everything else it answers lemonfiber's owner.claim and media.serve contracts with comes from Plex, beside it."
+asks_for      = "Exchanges the claim code the operator entered at plex.tv, once, to claim Plex, and makes, lists and removes at plex.tv the managed Home accounts that are the keys lemonfiber mints for an app. Everything else it answers lemonfiber's owner.claim and media.serve contracts with comes from Plex, beside it."
 config_path   = "/config"
 listens       = 8080
 speaks        = ["owner.claim@1", "media.serve@1"]

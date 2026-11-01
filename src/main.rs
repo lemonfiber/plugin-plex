@@ -40,7 +40,8 @@ async fn serve(settings: &Settings) -> Result<(), String> {
             &settings.configuration,
             plex_adapter::adapter::CODE,
         )),
-    );
+    )
+    .keeping_accounts_in(&settings.configuration);
     let listener = tokio::net::TcpListener::bind(&settings.listen)
         .await
         .map_err(|why| format!("{} could not be listened on: {why}", settings.listen))?;

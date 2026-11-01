@@ -11,6 +11,7 @@ use super::{an_id, Plex, SUPPORT};
 mod declared;
 mod encrypting;
 mod furnishing;
+mod keys;
 mod members;
 mod screening;
 mod serving;
@@ -34,6 +35,7 @@ impl Shared {
     pub(super) fn holding(name: &str, preferences: Option<&str>) -> Self {
         let root = std::env::temp_dir().join(format!("plex-adapter-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
+        let _ = std::fs::remove_dir_all(root.with_extension("adapter"));
         let support = SUPPORT.iter().fold(root.clone(), |at, step| at.join(step));
         let _ = std::fs::create_dir_all(&support);
         if let Some(preferences) = preferences {
@@ -56,16 +58,25 @@ impl Shared {
     pub(super) fn path(&self) -> &Path {
         &self.root
     }
+
+    /// The adapter's own configuration directory beside it, made where it is not there.
+    pub(super) fn adapter(&self) -> PathBuf {
+        let at = self.root.with_extension("adapter");
+        let _ = std::fs::create_dir_all(&at);
+        at
+    }
 }
 
 impl Drop for Shared {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.root);
+        let _ = std::fs::remove_dir_all(self.root.with_extension("adapter"));
     }
 }
 
 pub(super) fn plex(fake: &Arc<Fake>, shared: &Shared) -> Plex {
     Plex::new(fake.clone(), BASE, shared.path(), Arc::new(CODE.to_owned()))
+        .keeping_accounts_in(&shared.adapter())
 }
 
 pub(super) fn identity(claimed: bool) -> Answer {

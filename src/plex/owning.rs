@@ -10,27 +10,13 @@ use lemonfiber_ports::http::{Method, Request};
 use lemonfiber_ports::service::{Claim, Failure, Owner, Ownership};
 use serde::Deserialize;
 
-use super::{preferences, Plex, Wrapped, IDENTITY};
+use super::{as_a_server, preferences, Plex, Wrapped, IDENTITY};
 
 /// What a server asked for its preferences with the token it keeps answers it with.
 const PREFS: &str = "/:/prefs";
 
 /// Where plex.tv exchanges a claim code for the token of the account that showed it.
 const EXCHANGE: &str = "/api/claim/exchange";
-
-/// What the exchange is told the asker is: a Plex Media Server, as its image's first run
-/// tells it.
-const AS_A_SERVER: [(&str, &str); 7] = [
-    ("X-Plex-Product", "Plex Media Server"),
-    ("X-Plex-Version", "1.1"),
-    ("X-Plex-Provides", "server"),
-    ("X-Plex-Platform", "Linux"),
-    ("X-Plex-Platform-Version", "1.0"),
-    ("X-Plex-Device-Name", "PlexMediaServer"),
-    ("X-Plex-Device", "Linux"),
-];
-
-const CLIENT_HEADER: &str = "X-Plex-Client-Identifier";
 
 const TOKEN_OPENS: &str = "<authentication-token>";
 
@@ -82,11 +68,7 @@ impl Plex {
 
     /// The token plex.tv exchanges `code` for, asked as the server `client`.
     async fn exchanged(&self, code: &str, client: &str) -> Result<String, Failure> {
-        let mut headers: Vec<(String, String)> = AS_A_SERVER
-            .iter()
-            .map(|(name, value)| ((*name).to_owned(), (*value).to_owned()))
-            .collect();
-        headers.push((CLIENT_HEADER.to_owned(), client.to_owned()));
+        let headers = as_a_server(client);
         let asked = lemonfiber_adapter_kit::endpoint::form_encoded(&[("token", code)]);
         let response = self
             .accounts
