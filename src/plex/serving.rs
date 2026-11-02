@@ -1,12 +1,12 @@
 //! Looking over Plex's libraries again, the series it holds, and reading one item afresh.
-//! Plex keeps no list of proxies or origins its API sets, is not asked to start again by
-//! this adapter, and holds no keys of its own for an app, so the rest is unsupported.
+//! Plex keeps no list of proxies or origins its API sets and is not asked to start again by
+//! this adapter, so the rest is unsupported.
 
 use async_trait::async_trait;
 use lemonfiber_adapter_kit::endpoint::form_encoded;
 use lemonfiber_ports::http::Method;
 use lemonfiber_ports::media::Kind;
-use lemonfiber_ports::service::{AppKeys, Dated, Failure, Fronted, Library, SeriesHeld, Upkeep};
+use lemonfiber_ports::service::{Failure, Fronted, Library, SeriesHeld, Upkeep};
 
 use super::screening::Listed;
 use super::{an_id, Plex, ABSENT, METADATA};
@@ -16,9 +16,6 @@ const NO_PROXIES: &str = "Plex holds no list of addresses trusted to name the cl
 const NO_ORIGINS: &str = "Plex holds no list of origins a browser may read it from its API sets";
 
 const NO_RESTART: &str = "Plex is not asked to start again by this adapter";
-
-const NO_KEYS: &str =
-    "Plex holds no keys of its own for an app: every token it takes is one plex.tv issued";
 
 const NOTHING_THERE: &str = "Plex holds no item under that id";
 
@@ -126,28 +123,5 @@ impl Fronted for Plex {
 
     async fn restart(&self) -> Result<(), Failure> {
         Err(Self::unsupported(NO_RESTART))
-    }
-}
-
-#[async_trait]
-impl AppKeys for Plex {
-    async fn filed_as(&self, _app: &str) -> Result<Vec<String>, Failure> {
-        Err(Self::unsupported(NO_KEYS))
-    }
-
-    async fn mint(&self, _app: &str) -> Result<String, Failure> {
-        Err(Self::unsupported(NO_KEYS))
-    }
-
-    async fn dated(&self, _app: &str) -> Result<Vec<Dated>, Failure> {
-        Err(Self::unsupported(NO_KEYS))
-    }
-
-    async fn answers_to(&self, _key: &str) -> Result<(), Failure> {
-        Err(Self::unsupported(NO_KEYS))
-    }
-
-    async fn revoke(&self, _key: &str) -> Result<(), Failure> {
-        Err(Self::unsupported(NO_KEYS))
     }
 }

@@ -141,7 +141,6 @@ async fn what_plex_has_no_equivalent_for_and_whatever_names_a_member_is_answered
         ("sign_out", r#"{"device":"d"}"#),
         ("picture", r#"{"member":"m","id":"i","which":"poster"}"#),
         ("holdings", r#"{"member":"m","most":1}"#),
-        ("filed_as", r#"{"app":"a"}"#),
         ("known_proxies", "{}"),
         ("trust_only", r#"{"address":"10.0.0.1"}"#),
         ("allowed_origins", "{}"),

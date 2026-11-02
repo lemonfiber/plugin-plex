@@ -17,6 +17,7 @@ use serde::Deserialize;
 mod declared;
 mod encrypting;
 mod furnishing;
+mod keys;
 mod members;
 mod owning;
 mod preferences;
@@ -67,6 +68,7 @@ pub struct Plex {
     support: Shared,
     code: Arc<dyn Holding>,
     internal_tls: Option<Https>,
+    kept: Option<keys::Kept>,
 }
 
 /// What every answer Plex gives in JSON is wrapped in.
@@ -74,6 +76,29 @@ pub struct Plex {
 struct Wrapped<T> {
     #[serde(rename = "MediaContainer")]
     container: T,
+}
+
+/// What plex.tv is told the asker is: a Plex Media Server, as its image's first run tells
+/// it.
+const AS_A_SERVER: [(&str, &str); 7] = [
+    ("X-Plex-Product", "Plex Media Server"),
+    ("X-Plex-Version", "1.1"),
+    ("X-Plex-Provides", "server"),
+    ("X-Plex-Platform", "Linux"),
+    ("X-Plex-Platform-Version", "1.0"),
+    ("X-Plex-Device-Name", "PlexMediaServer"),
+    ("X-Plex-Device", "Linux"),
+];
+
+const CLIENT_HEADER: &str = "X-Plex-Client-Identifier";
+
+/// The headers plex.tv is asked with as the server presenting itself as `client`.
+fn as_a_server(client: &str) -> Vec<(String, String)> {
+    AS_A_SERVER
+        .iter()
+        .map(|(name, value)| ((*name).to_owned(), (*value).to_owned()))
+        .chain([(CLIENT_HEADER.to_owned(), client.to_owned())])
+        .collect()
 }
 
 impl Plex {
@@ -98,6 +123,17 @@ impl Plex {
             http,
             support,
             code,
+            kept: None,
+        }
+    }
+
+    /// The same Plex, keeping the accounts it makes as apps' keys in its own
+    /// configuration directory `directory`.
+    #[must_use]
+    pub fn keeping_accounts_in(self, directory: &Path) -> Self {
+        Self {
+            kept: Some(keys::Kept::in_directory(directory)),
+            ..self
         }
     }
 
