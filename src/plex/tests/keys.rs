@@ -10,7 +10,7 @@ const CLIENT: &str = "client-of-the-server";
 
 const MINTED: &str = "managed-account-token";
 
-const APP: &str = "request-gate";
+const APP: &str = "lemonfiber-request-gate";
 
 const OWNER_ID: u64 = 1;
 
@@ -174,7 +174,10 @@ async fn a_key_is_a_new_managed_home_account_titled_for_the_app_shared_every_lib
             .iter()
             .any(|(name, value)| name == "X-Plex-Client-Identifier" && value == CLIENT)));
     assert!(deleted(&fake).is_empty());
-    assert_eq!(made(&shared), r#"{"apps":{"request-gate":["77"]}}"#);
+    assert_eq!(
+        made(&shared),
+        r#"{"apps":{"lemonfiber-request-gate":["77"]}}"#
+    );
 }
 
 #[tokio::test]
@@ -260,7 +263,14 @@ async fn a_name_that_is_not_one_lowercase_word_is_refused_before_anything_is_ask
     let fake = Fake::always(Answer::reply(200, ONE_TITLED));
     let plex = plex(&fake, &shared);
 
-    for app in ["", "Request Gate", "../x", "a&title=Owner"] {
+    for app in [
+        "",
+        "request-gate",
+        "lemonfiber-",
+        "lemonfiber-Request Gate",
+        "lemonfiber-../x",
+        "lemonfiber-a&title=Owner",
+    ] {
         assert!(
             matches!(plex.mint(app).await, Err(Failure::Refused { .. })),
             "{app}"
@@ -311,7 +321,7 @@ async fn a_key_still_taken_after_its_account_is_removed_is_a_failed_revocation()
         assert!(plex.revoke(MINTED).await.is_err(), "{name}");
         assert_eq!(
             made(&shared),
-            r#"{"apps":{"request-gate":["77"]}}"#,
+            r#"{"apps":{"lemonfiber-request-gate":["77"]}}"#,
             "{name}"
         );
     }

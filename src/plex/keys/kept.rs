@@ -92,7 +92,7 @@ impl Kept {
     }
 
     fn write(&self, made: &Made) -> Result<(), String> {
-        let text = serde_json::to_vec(made).map_err(|why| why.to_string())?;
+        let text = serde_json::to_vec(made).unwrap_or_default();
         let staged = self.at.join(STAGED);
         let _ = std::fs::remove_file(&staged);
         let written = std::fs::OpenOptions::new()

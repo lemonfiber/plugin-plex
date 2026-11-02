@@ -23,7 +23,7 @@ const WHO: &str = "/api/v2/user";
 
 const SECTIONS: &str = "/library/sections";
 
-/// What every account an app's key is starts its title with.
+/// What every app's name, and so every account an app's key is titled with, starts with.
 const TITLED: &str = "lemonfiber-";
 
 const ACCOUNT: &str = "User";
@@ -72,15 +72,16 @@ struct Section {
     key: String,
 }
 
-/// The title of the account an app's key is, where `app` is one lowercase word of letters,
-/// digits and `-`.
+/// The title of the account an app's key is: the app's name, where it is one lowercase word
+/// of letters, digits and `-` starting with [`TITLED`].
 fn titled(app: &str) -> Option<String> {
-    (!app.is_empty()
+    (app.len() > TITLED.len()
         && app.len() <= LONGEST_APP
+        && app.starts_with(TITLED)
         && app
             .bytes()
             .all(|mark| mark.is_ascii_lowercase() || mark.is_ascii_digit() || mark == b'-'))
-    .then(|| format!("{TITLED}{app}"))
+    .then(|| app.to_owned())
 }
 
 /// The values of each of `names` on every element named `element` in `xml`, in order.
