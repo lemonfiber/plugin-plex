@@ -6,7 +6,7 @@
 use async_trait::async_trait;
 use lemonfiber_adapter_kit::endpoint::form_encoded;
 use lemonfiber_ports::http::{Method, Request, Response};
-use lemonfiber_ports::service::{AppKeys, Dated, Failure};
+use lemonfiber_ports::service::{AppKeys, Astray, Dated, Failure};
 use quick_xml::events::Event;
 use quick_xml::{Reader, XmlVersion};
 use serde::Deserialize;
@@ -36,6 +36,10 @@ const SWITCHED: &str = "authenticationToken";
 const JSON: &str = "application/json";
 
 const REFUSED_THE_TOKEN: u16 = 401;
+
+/// Where in Plex a managed account is removed, as its own screens name it.
+const REMOVED_IN: &str =
+    "Settings, Plex Home, in Plex Web signed in as the account that claimed Plex";
 
 /// The longest app name a title is made from.
 const LONGEST_APP: usize = 40;
@@ -240,6 +244,18 @@ impl Plex {
             .collect())
     }
 
+    /// The managed accounts of the Home titled for `app` that this adapter has no record of
+    /// making, for any app.
+    async fn not_made_for(&self, app: &str) -> Result<Vec<HomeUser>, Failure> {
+        let title = titled(app).ok_or_else(|| Self::not_an_app(app))?;
+        let home = self.home().await?;
+        let made = self.kept()?.read().map_err(|why| self.unkept(&why))?;
+        Ok(home
+            .into_iter()
+            .filter(|user| user.managed && user.title == title && !made.holds(&user.id))
+            .collect())
+    }
+
     /// Whether Plex refuses `key`: true where it answers that it does not take it, false
     /// where it serves it, and a failure for anything else.
     async fn server_refuses(&self, key: &str) -> Result<bool, Failure> {
@@ -422,5 +438,18 @@ impl AppKeys for Plex {
                 .refused("the account was removed and the key is still taken"));
         }
         kept.gone(&id).map_err(|why| self.unkept(&why))
+    }
+
+    async fn astray(&self, app: &str) -> Result<Vec<Astray>, Failure> {
+        Ok(self
+            .not_made_for(app)
+            .await?
+            .into_iter()
+            .map(|user| Astray {
+                id: user.id,
+                name: user.title,
+                removed_in: REMOVED_IN.to_owned(),
+            })
+            .collect())
     }
 }

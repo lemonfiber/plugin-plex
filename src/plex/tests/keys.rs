@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use lemonfiber_fixtures::http::{Answer, Fake};
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::service::{AppKeys as _, Dated, Failure};
+use lemonfiber_ports::service::{AppKeys as _, Astray, Dated, Failure};
 
 use super::{plex, Shared, TOKEN};
 
@@ -556,4 +556,74 @@ async fn an_account_plex_tv_names_past_any_number_is_never_shared_anything() {
         deleted(&fake),
         ["https://plex.tv/api/home/users/99999999999999999999"]
     );
+}
+
+#[tokio::test]
+async fn a_managed_account_titled_for_the_app_and_never_recorded_is_astray_and_nothing_else_is() {
+    let shared = presenting("keys-astray");
+    having_made(&shared, &["77"]);
+    let fake = Fake::by_route(vec![(
+        Method::Get,
+        "https://plex.tv/api/home/users",
+        Answer::reply(200, HOME),
+    )]);
+
+    assert_eq!(
+        plex(&fake, &shared).astray(APP).await.ok(),
+        Some(vec![Astray {
+            id: "78".to_owned(),
+            name: APP.to_owned(),
+            removed_in: "Settings, Plex Home, in Plex Web signed in as the account that claimed \
+                         Plex"
+                .to_owned(),
+        }])
+    );
+    assert!(fake
+        .requests()
+        .iter()
+        .all(|asked| asked.method == Method::Get));
+    assert!(deleted(&fake).is_empty());
+}
+
+#[tokio::test]
+async fn an_account_recorded_for_any_app_is_not_astray() {
+    let shared = presenting("keys-astray-recorded");
+    having_made(&shared, &["77", "78"]);
+    let fake = Fake::by_route(vec![(
+        Method::Get,
+        "https://plex.tv/api/home/users",
+        Answer::reply(200, HOME),
+    )]);
+
+    assert_eq!(
+        plex(&fake, &shared).astray(APP).await.ok(),
+        Some(Vec::new())
+    );
+}
+
+#[tokio::test]
+async fn what_is_astray_is_never_guessed_without_the_record_or_the_home() {
+    let unreadable = presenting("keys-astray-unreadable");
+    let _ = std::fs::write(
+        unreadable.adapter().join("plex-app-accounts.json"),
+        "not a record",
+    );
+    let home = Fake::by_route(vec![(
+        Method::Get,
+        "https://plex.tv/api/home/users",
+        Answer::reply(200, HOME),
+    )]);
+    assert!(plex(&home, &unreadable).astray(APP).await.is_err());
+
+    let shared = presenting("keys-astray-unlisted");
+    having_made(&shared, &["77"]);
+    let unlisted = Fake::always(Answer::reply(503, ""));
+    assert!(plex(&unlisted, &shared).astray(APP).await.is_err());
+
+    let silent = Fake::silent();
+    assert!(matches!(
+        plex(&silent, &shared).astray("not-an-app").await,
+        Err(Failure::Refused { .. })
+    ));
+    assert!(silent.requests().is_empty());
 }
