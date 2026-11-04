@@ -10,7 +10,7 @@ use lemonfiber_adapter_kit::endpoint::form_encoded;
 use lemonfiber_adapter_kit::picture;
 use lemonfiber_ports::service::{
     EpisodeDetail, Failure, Holds, HowFar, Image, Item, ItemDetail, ItemProgress, Medium, Picture,
-    Playback, Screening, SeasonDetail, PICTURE_MOST,
+    Playback, Screening, SeasonDetail, Session, PICTURE_MOST,
 };
 use serde::Deserialize;
 
@@ -92,11 +92,16 @@ struct Account {
 }
 
 #[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 struct Player {
     #[serde(default)]
     title: String,
     #[serde(default)]
     state: String,
+    #[serde(default)]
+    machine_identifier: String,
+    #[serde(default)]
+    product: String,
 }
 
 /// Whether `said` is a calendar date written as `YYYY-MM-DD`.
@@ -186,6 +191,16 @@ impl Metadata {
             overview: self.overview(),
             minutes: self.minutes(),
         }
+    }
+
+    fn session_of(&self, member: &str) -> Option<Session> {
+        let player = self.player.as_ref()?;
+        (self.user.as_ref()?.id == member).then(|| Session {
+            device_id: player.machine_identifier.clone(),
+            device: player.title.clone(),
+            client: player.product.clone(),
+            last_seen: None,
+        })
     }
 
     fn playback(self) -> Option<Playback> {
@@ -312,15 +327,30 @@ impl Plex {
             .collect())
     }
 
-    async fn sessions(&self, member: Option<&str>) -> Result<Vec<Playback>, Failure> {
-        let listed: Listed = self
-            .read(SESSIONS, "what Plex is playing could not be read")
-            .await?;
-        Ok(listed
+    async fn listed_playing(&self) -> Result<Listed, Failure> {
+        self.read(SESSIONS, "what Plex is playing could not be read")
+            .await
+    }
+
+    async fn now_playing(&self, member: Option<&str>) -> Result<Vec<Playback>, Failure> {
+        Ok(self
+            .listed_playing()
+            .await?
             .metadata
             .into_iter()
             .filter_map(Metadata::playback)
             .filter(|playing| member.is_none_or(|member| playing.member_id == member))
+            .collect())
+    }
+
+    /// The devices playing for the account `member`, as Plex lists its sessions.
+    pub(super) async fn playing_for(&self, member: &str) -> Result<Vec<Session>, Failure> {
+        Ok(self
+            .listed_playing()
+            .await?
+            .metadata
+            .iter()
+            .filter_map(|one| one.session_of(member))
             .collect())
     }
 }
@@ -370,6 +400,6 @@ impl Screening for Plex {
     }
 
     async fn playing(&self, member: Option<&str>) -> Result<Vec<Playback>, Failure> {
-        self.sessions(member).await
+        self.now_playing(member).await
     }
 }

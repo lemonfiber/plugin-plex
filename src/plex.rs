@@ -17,6 +17,7 @@ use serde::Deserialize;
 mod declared;
 mod encrypting;
 mod furnishing;
+mod household;
 mod keys;
 mod members;
 mod owning;

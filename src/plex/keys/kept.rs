@@ -19,7 +19,7 @@ const OWNER_ONLY: u32 = 0o600;
 /// The ids of the accounts made for each app.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(super) struct Made {
+pub(in crate::plex) struct Made {
     apps: BTreeMap<String, BTreeSet<String>>,
 }
 
@@ -30,7 +30,7 @@ impl Made {
     }
 
     /// Whether the account `id` was made for any app.
-    pub(super) fn holds(&self, id: &str) -> bool {
+    pub(in crate::plex) fn holds(&self, id: &str) -> bool {
         self.apps.values().any(|ids| ids.contains(id))
     }
 }
@@ -54,7 +54,7 @@ impl Kept {
     /// # Errors
     ///
     /// Why the record could not be read, where it is there and unreadable.
-    pub(super) fn read(&self) -> Result<Made, String> {
+    pub(in crate::plex) fn read(&self) -> Result<Made, String> {
         match std::fs::read(self.at.join(KEPT_FILE)) {
             Ok(bytes) => serde_json::from_slice(&bytes)
                 .map_err(|_| format!("{KEPT_FILE} is not the record this adapter keeps")),

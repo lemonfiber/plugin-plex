@@ -74,6 +74,19 @@ impl Drop for Shared {
     }
 }
 
+/// The identifier a claimed Plex presents to plex.tv in these tests.
+pub(super) const PRESENTED: &str = "client-of-the-server";
+
+/// Plex's configuration directory once claimed, naming the identifier it presents to plex.tv.
+pub(super) fn presenting(name: &str) -> Shared {
+    Shared::holding(
+        name,
+        Some(&format!(
+            r#"<Preferences MachineIdentifier="m" ProcessedMachineIdentifier="{PRESENTED}" PlexOnlineToken="{TOKEN}"/>"#
+        )),
+    )
+}
+
 pub(super) fn plex(fake: &Arc<Fake>, shared: &Shared) -> Plex {
     Plex::new(fake.clone(), BASE, shared.path(), Arc::new(CODE.to_owned()))
         .keeping_accounts_in(&shared.adapter())
