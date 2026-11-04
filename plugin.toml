@@ -1,4 +1,4 @@
-#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/fa979eaa9c26b98d2df7035385ca81b8770fefba/contract/plugin-manifest.schema.json
+#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/fdda4b122819d77dd79abacc0f34b577363c45ed/contract/plugin-manifest.schema.json
 # Plex, as a lemonfiber plugin.
 #
 # Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md

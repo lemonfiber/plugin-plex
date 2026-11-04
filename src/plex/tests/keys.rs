@@ -4,9 +4,7 @@ use lemonfiber_fixtures::http::{Answer, Fake};
 use lemonfiber_ports::http::Method;
 use lemonfiber_ports::service::{AppKeys as _, Astray, Dated, Failure};
 
-use super::{plex, Shared, TOKEN};
-
-const CLIENT: &str = "client-of-the-server";
+use super::{plex, presenting, Shared, PRESENTED, TOKEN};
 
 const MINTED: &str = "managed-account-token";
 
@@ -34,15 +32,9 @@ const IDENTITY: &str = r#"{"MediaContainer":{"claimed":true,"machineIdentifier":
 
 const SECTIONS: &str = r#"{"MediaContainer":{"size":2,"Directory":[{"key":"1","type":"movie"},{"key":"2","type":"show"}]}}"#;
 
-/// Plex's configuration directory once claimed, naming the identifier it presents to plex.tv.
-fn presenting(name: &str) -> Shared {
-    Shared::holding(
-        name,
-        Some(&format!(
-            r#"<Preferences MachineIdentifier="m" ProcessedMachineIdentifier="{CLIENT}" PlexOnlineToken="{TOKEN}"/>"#
-        )),
-    )
-}
+/// The server's libraries as plex.tv lists them, each with the id plex.tv shares it by; one
+/// names no id.
+const AT_PLEX_TV: &str = r#"<MediaContainer size="1"><Server machineIdentifier="the-machine"><Section id="1001" key="1" type="movie"/><Section id="1002" key="2" type="show"/><Section key="3" type="artist"/></Server></MediaContainer>"#;
 
 /// `shared` as an adapter that made the accounts `ids` for the app.
 fn having_made(shared: &Shared, ids: &[&str]) {
@@ -113,8 +105,8 @@ fn minting(shared: Answer) -> Arc<Fake> {
         (Method::Get, "/identity", vec![Answer::reply(200, IDENTITY)]),
         (
             Method::Get,
-            "/library/sections",
-            vec![Answer::reply(200, SECTIONS)],
+            "https://plex.tv/api/servers/the-machine",
+            vec![Answer::reply(200, AT_PLEX_TV)],
         ),
     ])
 }
@@ -163,7 +155,10 @@ async fn a_key_is_a_new_managed_home_account_titled_for_the_app_shared_every_lib
         .find(|one| one.url.ends_with("/shared_servers"))
         .and_then(|one| one.body)
         .unwrap_or_default();
-    assert!(share.contains(r#""library_section_ids":[1,2]"#), "{share}");
+    assert!(
+        share.contains(r#""library_section_ids":[1001,1002]"#),
+        "{share}"
+    );
     assert!(share.contains(r#""invited_id":77"#), "{share}");
     assert!(fake
         .requests()
@@ -172,7 +167,7 @@ async fn a_key_is_a_new_managed_home_account_titled_for_the_app_shared_every_lib
         .all(|one| one
             .headers
             .iter()
-            .any(|(name, value)| name == "X-Plex-Client-Identifier" && value == CLIENT)));
+            .any(|(name, value)| name == "X-Plex-Client-Identifier" && value == PRESENTED)));
     assert!(deleted(&fake).is_empty());
     assert_eq!(
         made(&shared),
@@ -544,8 +539,8 @@ async fn an_account_plex_tv_names_past_any_number_is_never_shared_anything() {
         (Method::Get, "/identity", vec![Answer::reply(200, IDENTITY)]),
         (
             Method::Get,
-            "/library/sections",
-            vec![Answer::reply(200, SECTIONS)],
+            "https://plex.tv/api/servers/the-machine",
+            vec![Answer::reply(200, AT_PLEX_TV)],
         ),
     ]);
     let plex = plex(&fake, &shared);

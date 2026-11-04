@@ -17,19 +17,19 @@ mod kept;
 
 pub(super) use kept::Kept;
 
-const HOME_USERS: &str = "/api/home/users";
+pub(super) const HOME_USERS: &str = "/api/home/users";
 
-const WHO: &str = "/api/v2/user";
+pub(super) const WHO: &str = "/api/v2/user";
 
-const SECTIONS: &str = "/library/sections";
+pub(super) const SECTIONS: &str = "/library/sections";
 
 /// What every app's name, and so every account an app's key is titled with, starts with.
-const TITLED: &str = "lemonfiber-";
+pub(super) const TITLED: &str = "lemonfiber-";
 
 const ACCOUNT: &str = "User";
 
 /// How plex.tv flags a Home account as managed, or as its administrator.
-const FLAGGED: &str = "1";
+pub(super) const FLAGGED: &str = "1";
 
 const SWITCHED: &str = "authenticationToken";
 
@@ -65,16 +65,11 @@ struct Served {
     machine_identifier: String,
 }
 
-#[derive(Deserialize, Default)]
-struct Sections {
-    #[serde(rename = "Directory", default)]
-    directories: Vec<Section>,
-}
+/// The servers plex.tv lists for the claiming account, by the identifier Plex presents.
+pub(super) const SERVERS: &str = "/api/servers";
 
-#[derive(Deserialize)]
-struct Section {
-    key: String,
-}
+/// What plex.tv calls one of a server's libraries.
+const SECTION: &str = "Section";
 
 /// The title of the account an app's key is: the app's name, where it is one lowercase word
 /// of letters, digits and `-` starting with [`TITLED`].
@@ -89,7 +84,7 @@ fn titled(app: &str) -> Option<String> {
 }
 
 /// The values of each of `names` on every element named `element` in `xml`, in order.
-fn attributes(xml: &str, element: &str, names: &[&str]) -> Vec<Vec<Option<String>>> {
+pub(super) fn attributes(xml: &str, element: &str, names: &[&str]) -> Vec<Vec<Option<String>>> {
     let mut reader = Reader::from_str(xml);
     let mut found = Vec::new();
     loop {
@@ -170,7 +165,7 @@ impl Plex {
     }
 
     /// plex.tv's answer to `method` at `path`, asked as Plex with `token`.
-    async fn at_plex_tv(
+    pub(super) async fn at_plex_tv(
         &self,
         method: Method,
         path: &str,
@@ -195,7 +190,7 @@ impl Plex {
 
     /// plex.tv's answer to `method` at `path` as the claiming account, refused where it
     /// is not a success.
-    async fn as_owner(
+    pub(super) async fn as_owner(
         &self,
         method: Method,
         path: &str,
@@ -217,7 +212,7 @@ impl Plex {
     }
 
     /// Where the accounts made as apps' keys are kept, refused where nothing keeps them.
-    fn kept(&self) -> Result<&Kept, Failure> {
+    pub(super) fn kept(&self) -> Result<&Kept, Failure> {
         self.kept.as_ref().ok_or_else(|| {
             self.accounts
                 .refused("this adapter keeps no record of the accounts it makes")
@@ -225,7 +220,7 @@ impl Plex {
     }
 
     /// What reading or writing the record of the accounts made came to, as a failure.
-    fn unkept(&self, why: &str) -> Failure {
+    pub(super) fn unkept(&self, why: &str) -> Failure {
         self.accounts.refused(why)
     }
 
@@ -281,7 +276,7 @@ impl Plex {
     }
 
     /// The account plex.tv answers `token` as, or none where it refuses the token.
-    async fn whose(&self, token: &str) -> Result<Option<String>, Failure> {
+    pub(super) async fn whose(&self, token: &str) -> Result<Option<String>, Failure> {
         let response = self.at_plex_tv(Method::Get, WHO, token, None).await?;
         if response.status == REFUSED_THE_TOKEN {
             return Ok(None);
@@ -296,35 +291,70 @@ impl Plex {
         Ok(Some(who.id.to_string()))
     }
 
-    /// Share every library Plex holds with the Home account `id`.
-    async fn shared_with(&self, id: &str) -> Result<(), Failure> {
+    /// The identifier Plex says it is, which plex.tv files its shares under.
+    pub(super) async fn machine(&self) -> Result<String, Failure> {
         let served: Served = self
             .read(IDENTITY, "Plex did not say which server it is")
             .await?;
-        let sections: Sections = self
-            .read(SECTIONS, "the libraries Plex holds could not be read")
+        Ok(served.machine_identifier)
+    }
+
+    /// Each library of the server `machine`, as plex.tv lists it: the key Plex files it
+    /// under, and the id plex.tv shares it by.
+    pub(super) async fn libraries_at_plex_tv(
+        &self,
+        machine: &str,
+    ) -> Result<Vec<(String, u64)>, Failure> {
+        let response = self
+            .as_owner(Method::Get, &format!("{SERVERS}/{machine}"), None)
             .await?;
+        Ok(attributes(&response.body, SECTION, &["key", "id"])
+            .into_iter()
+            .filter_map(|read| match read.as_slice() {
+                [Some(key), Some(id)] => Some((key.clone(), id.parse().ok()?)),
+                _ => None,
+            })
+            .collect())
+    }
+
+    /// Share the libraries `libraries`, by plex.tv's ids, of the server `machine` with the
+    /// plex.tv account `id`, held to `settings` from the moment it is made.
+    pub(super) async fn share(
+        &self,
+        machine: &str,
+        id: &str,
+        libraries: &[u64],
+        settings: serde_json::Value,
+    ) -> Result<(), Failure> {
         let invited: u64 = id.parse().map_err(|_| {
             self.accounts
                 .refused("plex.tv named the account unreadably")
         })?;
-        let library_section_ids: Vec<u64> = sections
-            .directories
-            .iter()
-            .filter_map(|section| section.key.parse().ok())
-            .collect();
-        let machine = served.machine_identifier;
         let body = serde_json::json!({
             "server_id": machine,
-            "shared_server": { "library_section_ids": library_section_ids, "invited_id": invited },
+            "shared_server": { "library_section_ids": libraries, "invited_id": invited },
+            "sharing_settings": settings,
         });
         self.as_owner(
             Method::Post,
-            &format!("/api/servers/{machine}/shared_servers"),
+            &format!("{SERVERS}/{machine}/shared_servers"),
             Some(body.to_string()),
         )
         .await
         .map(drop)
+    }
+
+    /// Share every library Plex holds with the Home account `id`.
+    async fn shared_with(&self, id: &str) -> Result<(), Failure> {
+        let machine = self.machine().await?;
+        let libraries: Vec<u64> = self
+            .libraries_at_plex_tv(&machine)
+            .await?
+            .into_iter()
+            .map(|(_, id)| id)
+            .collect();
+        self.share(&machine, id, &libraries, serde_json::json!({}))
+            .await
     }
 
     /// Remove the Home account `id`.
