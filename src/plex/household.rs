@@ -31,8 +31,6 @@ const RESTRICTED: &str = "/api/v2/home/users/restricted";
 const NO_PASSWORDS: &str =
     "a Plex member signs in at plex.tv, so no name and password is checked here";
 
-const NOTHING_ADMITTED: &str = "no certificate of the owner's country is at or under the age limit, so Plex cannot be told to admit only those";
-
 const UNDER_EVERY_PROFILE: &str = "the age limit is under what Plex's youngest restriction profile lets a managed account watch, so no profile holds it";
 
 const NO_SHARE: &str = "the member holds no share of this server to hold to an age limit";
@@ -229,16 +227,15 @@ impl Plex {
 
     /// The filter `allowed` holds a share to from `kept`, the one it holds now: open, and held
     /// to the limit `allowed` sets or the one `kept` holds.
-    fn wanted(&self, kept: &str, allowed: &Allowed) -> Result<String, Failure> {
+    fn wanted(kept: &str, allowed: &Allowed) -> String {
         if allowed.age_limit.is_none() && allowed.unrated.is_none() {
-            return Ok(limits::opening(kept));
+            return limits::opening(kept);
         }
         let (held_limit, held_unrated) = limits::read(kept);
         limits::written(
             allowed.age_limit.or(held_limit),
             allowed.unrated.unwrap_or(held_unrated),
         )
-        .ok_or_else(|| self.accounts.refused(NOTHING_ADMITTED))
     }
 
     /// Hold the member `id` to `allowed`. Everything that can be refused is refused before
@@ -270,7 +267,7 @@ impl Plex {
         let filter = if account.managed {
             limits::opening(&kept)
         } else {
-            self.wanted(&kept, allowed)?
+            Self::wanted(&kept, allowed)
         };
         let ids = match &allowed.libraries {
             Some(libraries) => Some(self.library_ids(&machine, libraries).await?),

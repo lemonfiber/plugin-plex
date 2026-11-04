@@ -103,12 +103,15 @@ pub(super) fn opening(kept: &str) -> String {
 
 /// The filter holding a share to `age_limit`, or to no limit, and to `unrated`: admitting only
 /// the certificates at or under it where unrated content is held back, or refusing those
-/// above it where it is let through. Nothing where unrated content is held back and no
-/// certificate is at or under the limit.
-pub(super) fn written(age_limit: Option<u32>, unrated: Unrated) -> Option<String> {
-    let every: Vec<Rated> = certificates::every();
+/// above it where it is let through. A filter that would admit no certificate admits nothing.
+pub(super) fn written(age_limit: Option<u32>, unrated: Unrated) -> String {
+    written_over(&certificates::every(), age_limit, unrated)
+}
+
+/// [`written`], over the certificates `named`.
+fn written_over(named: &[Rated], age_limit: Option<u32>, unrated: Unrated) -> String {
     let picked = |admitted: bool| -> Vec<String> {
-        every
+        named
             .iter()
             .filter(|rated| age_limit.is_none_or(|limit| rated.age <= limit) == admitted)
             .map(|rated| rated.kept.clone())
@@ -117,15 +120,19 @@ pub(super) fn written(age_limit: Option<u32>, unrated: Unrated) -> Option<String
     match unrated {
         Unrated::HeldBack => {
             let admitted = picked(true);
-            (!admitted.is_empty()).then(|| format!("{RATING}={}", admitted.join(VALUES)))
+            if admitted.is_empty() {
+                CLOSED.to_owned()
+            } else {
+                format!("{RATING}={}", admitted.join(VALUES))
+            }
         }
         Unrated::LetThrough => {
             let refused = picked(false);
-            Some(if refused.is_empty() {
+            if refused.is_empty() {
                 String::new()
             } else {
                 format!("{NOT_RATING}={}", refused.join(VALUES))
-            })
+            }
         }
     }
 }

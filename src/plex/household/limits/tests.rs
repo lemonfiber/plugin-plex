@@ -1,7 +1,10 @@
 use lemonfiber_ports::service::Unrated;
 
 use super::super::certificates::every;
-use super::{closed, closing, opening, profile, profile_age, read, written, Profiled, CLOSED};
+use super::super::certificates::Rated;
+use super::{
+    closed, closing, opening, profile, profile_age, read, written, written_over, Profiled, CLOSED,
+};
 
 #[test]
 fn a_filter_admitting_certificates_holds_back_unrated_content_at_the_highest_admitted_age() {
@@ -37,44 +40,41 @@ fn no_filter_or_one_naming_nothing_this_table_ages_holds_no_limit() {
 
 #[test]
 fn holding_unrated_content_back_admits_only_certificates_at_or_under_the_limit_of_every_board() {
-    let filter = written(Some(12), Unrated::HeldBack).unwrap_or_default();
+    let filter = written(Some(12), Unrated::HeldBack);
     let admitted: Vec<&str> = filter
         .trim_start_matches("contentRating=")
         .split("%2C")
         .collect();
     assert!(filter.starts_with("contentRating="), "{filter}");
-    for certificate in ["gb/12A", "gb/12", "PG", "de/12", "nl/12", "TV-Y7"] {
-        assert!(admitted.contains(&certificate), "{certificate} in {filter}");
+    for rating in ["gb/12A", "gb/12", "PG", "de/12", "nl/12", "TV-Y7"] {
+        assert!(admitted.contains(&rating), "{rating} in {filter}");
     }
-    for certificate in ["gb/15", "PG-13", "R", "de/16", "au/M", "TV-14"] {
-        assert!(
-            !admitted.contains(&certificate),
-            "{certificate} in {filter}"
-        );
+    for rating in ["gb/15", "PG-13", "R", "de/16", "au/M", "TV-14"] {
+        assert!(!admitted.contains(&rating), "{rating} in {filter}");
     }
 }
 
 #[test]
 fn letting_unrated_content_through_refuses_every_boards_certificates_above_the_limit() {
-    let filter = written(Some(12), Unrated::LetThrough).unwrap_or_default();
+    let filter = written(Some(12), Unrated::LetThrough);
     let refused: Vec<&str> = filter
         .trim_start_matches("contentRating!=")
         .split("%2C")
         .collect();
     assert!(filter.starts_with("contentRating!="), "{filter}");
-    for certificate in ["gb/15", "PG-13", "R", "NC-17", "de/16", "au/MA15+", "TV-MA"] {
-        assert!(refused.contains(&certificate), "{certificate} in {filter}");
+    for rating in ["gb/15", "PG-13", "R", "NC-17", "de/16", "au/MA15+", "TV-MA"] {
+        assert!(refused.contains(&rating), "{rating} in {filter}");
     }
-    for certificate in ["gb/12A", "PG", "de/12"] {
-        assert!(!refused.contains(&certificate), "{certificate} in {filter}");
+    for rating in ["gb/12A", "PG", "de/12"] {
+        assert!(!refused.contains(&rating), "{rating} in {filter}");
     }
-    assert_eq!(written(Some(18), Unrated::LetThrough).as_deref(), Some(""));
-    assert_eq!(written(None, Unrated::LetThrough).as_deref(), Some(""));
+    assert_eq!(written(Some(18), Unrated::LetThrough), "");
+    assert_eq!(written(None, Unrated::LetThrough), "");
 }
 
 #[test]
 fn holding_unrated_content_back_with_no_limit_admits_every_certificate_and_nothing_unrated() {
-    let filter = written(None, Unrated::HeldBack).unwrap_or_default();
+    let filter = written(None, Unrated::HeldBack);
     assert_eq!(
         filter
             .trim_start_matches("contentRating=")
@@ -87,14 +87,14 @@ fn holding_unrated_content_back_with_no_limit_admits_every_certificate_and_nothi
 #[test]
 fn what_a_filter_is_written_as_reads_back_as_the_same_limit() {
     for limit in [0, 6, 8, 12, 15, 16] {
-        let admitting = written(Some(limit), Unrated::HeldBack).unwrap_or_default();
+        let admitting = written(Some(limit), Unrated::HeldBack);
         assert_eq!(
             read(&admitting),
             (Some(limit), Unrated::HeldBack),
             "{limit}"
         );
 
-        let refusing = written(Some(limit), Unrated::LetThrough).unwrap_or_default();
+        let refusing = written(Some(limit), Unrated::LetThrough);
         let (read_limit, read_unrated) = read(&refusing);
         assert_eq!(read_unrated, Unrated::LetThrough, "{refusing}");
         let read_limit = read_limit.unwrap_or_default();
@@ -149,4 +149,21 @@ fn a_restriction_profile_is_read_as_the_highest_age_it_lets_watch() {
     assert_eq!(profile_age("older_kid"), Some(12));
     assert_eq!(profile_age("teen"), Some(16));
     assert_eq!(profile_age("adult"), None);
+}
+
+#[test]
+fn a_filter_that_would_admit_no_certificate_admits_nothing_rather_than_everything() {
+    let only_adult = [Rated {
+        kept: "gb/18".to_owned(),
+        name: "18".to_owned(),
+        age: 18,
+    }];
+    assert_eq!(
+        written_over(&only_adult, Some(12), Unrated::HeldBack),
+        CLOSED
+    );
+    assert_eq!(
+        written_over(&only_adult, Some(12), Unrated::LetThrough),
+        "contentRating!=gb/18"
+    );
 }

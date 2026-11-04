@@ -613,7 +613,7 @@ fn closed_settings() -> serde_json::Value {
 }
 
 fn written_filter(age_limit: Option<u32>, unrated: Unrated) -> String {
-    written_limit(age_limit, unrated).unwrap_or_default()
+    written_limit(age_limit, unrated)
 }
 
 #[tokio::test]
@@ -882,4 +882,14 @@ async fn devices_sign_in_by_code_and_setup_is_done_once_plex_is_claimed() {
         Some(false)
     );
     assert!(fake.requests().is_empty());
+}
+
+#[tokio::test]
+async fn a_household_read_with_the_record_of_apps_accounts_unreadable_is_a_failure() {
+    let shared = claimed("household-unkept");
+    let _ = std::fs::write(shared.adapter().join("plex-app-accounts.json"), "not json");
+    let fake = household(Vec::new());
+
+    assert!(plex(&fake, &shared).household().await.is_err());
+    assert!(!fake.asked_for("plex.tv"));
 }
