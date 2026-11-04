@@ -87,9 +87,9 @@ pub(super) struct Share {
 }
 
 impl Share {
-    /// Whether it opens no library at all.
+    /// Whether it opens nothing: no library, or a filter admitting nothing.
     pub(super) fn closed(&self) -> bool {
-        !self.every_library && self.libraries.is_empty()
+        (!self.every_library && self.libraries.is_empty()) || super::limits::closed(&self.filter)
     }
 }
 

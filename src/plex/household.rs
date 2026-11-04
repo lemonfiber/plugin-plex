@@ -33,6 +33,18 @@ const NO_PASSWORDS: &str =
 
 const NOTHING_ADMITTED: &str = "no certificate of the owner's country is at or under the age limit, so Plex cannot be told to admit only those";
 
+const UNDER_EVERY_PROFILE: &str = "the age limit is under what Plex's youngest restriction profile lets a managed account watch, so no profile holds it";
+
+const NO_SHARE: &str = "the member holds no share of this server to hold to an age limit";
+
+/// Each filter a share holds, as plex.tv names them.
+const FILTERS: [&str; 4] = [
+    "filterMovies",
+    "filterTelevision",
+    "filterMusic",
+    "filterPhotos",
+];
+
 const NO_ADMINISTRATOR: &str =
     "Plex is set up by claiming it, and its owner's password is plex.tv's to change";
 
@@ -77,12 +89,10 @@ struct Owner {
 }
 
 impl Account {
-    fn member(&self, country: Option<&str>) -> Member {
+    fn member(&self) -> Member {
         let (age_limit, unrated) = match (&self.profile, &self.share) {
             (Some(profile), _) if self.managed => (limits::profile_age(profile), Unrated::HeldBack),
-            (_, Some(share)) => country.map_or((None, Unrated::LetThrough), |country| {
-                limits::read(country, &share.filter)
-            }),
+            (_, Some(share)) => limits::read(&share.filter),
             _ => (None, Unrated::LetThrough),
         };
         Member {
@@ -113,6 +123,16 @@ impl Account {
 fn a_country(said: &str) -> Option<String> {
     (said.len() == 2 && said.bytes().all(|mark| mark.is_ascii_alphabetic()))
         .then(|| said.to_ascii_uppercase())
+}
+
+/// A share's settings holding every filter to `filter`.
+fn filtered_by(filter: &str) -> serde_json::Value {
+    serde_json::Value::Object(
+        FILTERS
+            .iter()
+            .map(|name| ((*name).to_owned(), serde_json::Value::from(filter)))
+            .collect(),
+    )
 }
 
 impl Plex {
@@ -159,104 +179,129 @@ impl Plex {
         Ok(held)
     }
 
-    /// Open the libraries `libraries`, by the keys Plex files them under, to `account` on
-    /// the server `machine`.
-    async fn open(
-        &self,
-        machine: &str,
-        account: &Account,
-        libraries: &[String],
-    ) -> Result<(), Failure> {
+    /// plex.tv's ids for the libraries `libraries`, by the keys Plex files them under,
+    /// refused where one is no library of the server `machine`.
+    async fn library_ids(&self, machine: &str, libraries: &[String]) -> Result<Vec<u64>, Failure> {
         let at_plex_tv = self.libraries_at_plex_tv(machine).await?;
-        let mut ids = Vec::new();
-        for key in libraries {
-            let Some((_, id)) = at_plex_tv.iter().find(|(held, _)| held == key) else {
-                return Err(self.endpoint.refused("no library Plex holds has that key"));
-            };
-            ids.push(*id);
-        }
-        let Some(share) = &account.share else {
-            return self.share(machine, &account.id, &ids).await;
-        };
-        let body = serde_json::json!({
-            "server_id": machine,
-            "shared_server": { "library_section_ids": ids },
-        });
-        self.as_owner(
-            Method::Put,
-            &format!("{SERVERS}/{machine}/shared_servers/{}", share.id),
-            Some(body.to_string()),
-        )
-        .await
-        .map(drop)
+        libraries
+            .iter()
+            .map(|key| {
+                at_plex_tv
+                    .iter()
+                    .find(|(held, _)| held == key)
+                    .map(|(_, id)| *id)
+                    .ok_or_else(|| self.endpoint.refused("no library Plex holds has that key"))
+            })
+            .collect()
     }
 
-    /// Hold `account` to the age limit and the choice about unrated content in `allowed`,
-    /// keeping what `allowed` leaves unsaid as the account has it.
-    async fn hold(&self, account: &Account, allowed: &Allowed) -> Result<(), Failure> {
-        if account.managed {
-            let Some(age_limit) = allowed.age_limit else {
-                return Ok(());
-            };
-            let asked = form_encoded(&[(
-                "restrictionProfile",
-                limits::profile(age_limit).unwrap_or_default(),
-            )]);
-            return self
-                .as_owner(
-                    Method::Put,
-                    &format!("{RESTRICTED}/{}?{asked}", account.id),
-                    None,
-                )
-                .await
-                .map(drop);
-        }
-        let Some(share) = &account.share else {
-            return Err(self
-                .accounts
-                .refused("the member holds no share of this server to limit"));
-        };
-        let country = self
-            .owner_country()
-            .await?
-            .filter(|country| certificates::holds(country))
-            .ok_or_else(|| {
-                self.accounts.refused(
-                    "this adapter ages no certificates of the country plex.tv names for Plex's \
-                     owner, so an age limit cannot be said in them",
-                )
-            })?;
-        let (held_limit, held_unrated) = limits::read(&country, &share.filter);
-        let Some(age_limit) = allowed.age_limit.or(held_limit) else {
-            return Ok(());
-        };
-        let unrated = allowed.unrated.unwrap_or(held_unrated);
-        let filter = limits::written(age_limit, unrated, &certificates::every(&country))
-            .ok_or_else(|| self.accounts.refused(NOTHING_ADMITTED))?;
-        let asked = form_encoded(&[
-            ("filterMovies", filter.as_str()),
-            ("filterTelevision", filter.as_str()),
-        ]);
+    /// Hold every share with `account` to `filter`, as plex.tv keeps it.
+    async fn filter(&self, account: &Account, filter: &str) -> Result<(), Failure> {
+        let asked: Vec<(&str, &str)> = FILTERS.iter().map(|name| (*name, filter)).collect();
         self.as_owner(
             Method::Put,
-            &format!("{SHARINGS}/{}?{asked}", account.id),
+            &format!("{SHARINGS}/{}?{}", account.id, form_encoded(&asked)),
             None,
         )
         .await
         .map(drop)
     }
 
+    /// Open the libraries `ids`, by plex.tv's ids, of the server `machine` to the share `share`.
+    async fn shared_libraries(
+        &self,
+        machine: &str,
+        share: u64,
+        ids: &[u64],
+    ) -> Result<(), Failure> {
+        let body = serde_json::json!({
+            "server_id": machine,
+            "shared_server": { "library_section_ids": ids },
+        });
+        self.as_owner(
+            Method::Put,
+            &format!("{SERVERS}/{machine}/shared_servers/{share}"),
+            Some(body.to_string()),
+        )
+        .await
+        .map(drop)
+    }
+
+    /// The filter `allowed` holds a share to from `kept`, the one it holds now: open, and held
+    /// to the limit `allowed` sets or the one `kept` holds.
+    fn wanted(&self, kept: &str, allowed: &Allowed) -> Result<String, Failure> {
+        if allowed.age_limit.is_none() && allowed.unrated.is_none() {
+            return Ok(limits::opening(kept));
+        }
+        let (held_limit, held_unrated) = limits::read(kept);
+        limits::written(
+            allowed.age_limit.or(held_limit),
+            allowed.unrated.unwrap_or(held_unrated),
+        )
+        .ok_or_else(|| self.accounts.refused(NOTHING_ADMITTED))
+    }
+
+    /// Hold the member `id` to `allowed`. Everything that can be refused is refused before
+    /// the first write, the restriction profile is written before any library opens, and
+    /// libraries change only while the share admits nothing, so no step that fails leaves
+    /// the member able to watch more than before or than `allowed` allows.
     async fn allowing(&self, id: &str, allowed: &Allowed) -> Result<(), Failure> {
         let machine = self.machine().await?;
         let account = self.member_of(&machine, id).await?;
-        if let Some(libraries) = &allowed.libraries {
-            self.open(&machine, &account, libraries).await?;
+        let limited = allowed.age_limit.is_some() || allowed.unrated.is_some();
+        let profile = match (account.managed, allowed.age_limit) {
+            (true, Some(age_limit)) => match limits::profile(age_limit) {
+                limits::Profiled::Held(profile) => Some(profile),
+                limits::Profiled::Unrestricted => Some(""),
+                limits::Profiled::Unheld => {
+                    return Err(self.accounts.refused(UNDER_EVERY_PROFILE));
+                }
+            },
+            _ => None,
+        };
+        if !account.managed && limited && account.share.is_none() {
+            return Err(self.accounts.refused(NO_SHARE));
         }
-        if allowed.age_limit.is_some() || allowed.unrated.is_some() {
-            let account = self.member_of(&machine, id).await?;
-            self.hold(&account, allowed).await?;
+        let kept = account
+            .share
+            .as_ref()
+            .map(|share| share.filter.clone())
+            .unwrap_or_default();
+        let filter = if account.managed {
+            limits::opening(&kept)
+        } else {
+            self.wanted(&kept, allowed)?
+        };
+        let ids = match &allowed.libraries {
+            Some(libraries) => Some(self.library_ids(&machine, libraries).await?),
+            None => None,
+        };
+        if let Some(profile) = profile {
+            let asked = form_encoded(&[("restrictionProfile", profile)]);
+            self.as_owner(
+                Method::Put,
+                &format!("{RESTRICTED}/{}?{asked}", account.id),
+                None,
+            )
+            .await?;
         }
-        Ok(())
+        match (&account.share, ids) {
+            (None, None) => Ok(()),
+            (None, Some(ids)) if ids.is_empty() => Ok(()),
+            (None, Some(ids)) => {
+                self.share(&machine, &account.id, &ids, filtered_by(&filter))
+                    .await
+            }
+            (Some(_), None) => self.filter(&account, &filter).await,
+            (Some(_), Some(ids)) if ids.is_empty() => {
+                self.filter(&account, &limits::closing(&filter)).await
+            }
+            (Some(share), Some(ids)) => {
+                self.filter(&account, &limits::closing(&kept)).await?;
+                self.shared_libraries(&machine, share.id, &ids).await?;
+                self.filter(&account, &filter).await
+            }
+        }
     }
 
     async fn unshared(&self, machine: &str, share: u64) -> Result<(), Failure> {
@@ -274,11 +319,11 @@ impl Plex {
 impl Household for Plex {
     async fn household(&self) -> Result<Vec<Member>, Failure> {
         let machine = self.machine().await?;
-        let household = self.household_of(&machine).await?;
-        let country = self.owner_country().await?;
-        Ok(household
+        Ok(self
+            .household_of(&machine)
+            .await?
             .iter()
-            .map(|account| account.member(country.as_deref()))
+            .map(Account::member)
             .collect())
     }
 
@@ -320,7 +365,7 @@ impl Household for Plex {
             "machineIdentifier": machine,
             "invitedEmail": name,
             "librarySectionIds": libraries,
-            "settings": {},
+            "settings": filtered_by(limits::CLOSED),
         });
         let response = self
             .as_owner(Method::Post, SHARED_SERVERS, Some(body.to_string()))
@@ -340,6 +385,7 @@ impl Household for Plex {
             claimed: shared.accepted,
             access: Access {
                 every_library: true,
+                disabled: true,
                 ..Access::default()
             },
             last_seen: None,
@@ -436,10 +482,10 @@ impl Household for Plex {
     async fn suspend(&self, id: &str) -> Result<(), Failure> {
         let machine = self.machine().await?;
         let account = self.member_of(&machine, id).await?;
-        if account.share.is_none() {
-            return Ok(());
+        match &account.share {
+            Some(share) => self.filter(&account, &limits::closing(&share.filter)).await,
+            None => Ok(()),
         }
-        self.open(&machine, &account, &[]).await
     }
 
     async fn sessions(&self, member: &str) -> Result<Vec<Session>, Failure> {

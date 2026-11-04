@@ -103,25 +103,37 @@ pub(super) fn holds(country: &str) -> bool {
     board(country).is_some()
 }
 
-/// Every certificate of `country`, each as Plex keeps it on an item, or none where this
-/// table does not hold the country.
-pub(super) fn every(country: &str) -> Vec<Rated> {
-    let Some(board) = board(country) else {
-        return Vec::new();
-    };
-    let prefix = country.to_ascii_lowercase();
+/// The certificates of `board`, the board of `country`, each as Plex keeps it on an item.
+fn kept_as(country: &str, board: &[(&str, u32)]) -> Vec<Rated> {
     board
         .iter()
         .map(|(name, age)| Rated {
-            kept: if prefix == UNPREFIXED {
+            kept: if country == UNPREFIXED {
                 (*name).to_owned()
             } else {
-                format!("{prefix}/{name}")
+                format!("{country}/{name}")
             },
             name: (*name).to_owned(),
             age: *age,
         })
         .collect()
+}
+
+/// Every certificate of every country this table holds, each as Plex keeps it on an item.
+pub(super) fn every() -> Vec<Rated> {
+    BOARDS
+        .iter()
+        .flat_map(|(country, board)| kept_as(country, board))
+        .collect()
+}
+
+/// `kept`, a certificate as Plex keeps it, with its age, whichever country this table holds
+/// it is of, or nothing where this table does not age it.
+pub(super) fn aged(kept: &str) -> Option<Rated> {
+    let country = kept
+        .split_once('/')
+        .map_or(UNPREFIXED, |(prefix, _)| prefix);
+    rated(country, kept)
 }
 
 /// `kept`, a certificate as Plex keeps it, as a certificate of `country` with its age, or

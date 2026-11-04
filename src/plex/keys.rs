@@ -318,12 +318,13 @@ impl Plex {
     }
 
     /// Share the libraries `libraries`, by plex.tv's ids, of the server `machine` with the
-    /// plex.tv account `id`.
+    /// plex.tv account `id`, held to `settings` from the moment it is made.
     pub(super) async fn share(
         &self,
         machine: &str,
         id: &str,
         libraries: &[u64],
+        settings: serde_json::Value,
     ) -> Result<(), Failure> {
         let invited: u64 = id.parse().map_err(|_| {
             self.accounts
@@ -332,6 +333,7 @@ impl Plex {
         let body = serde_json::json!({
             "server_id": machine,
             "shared_server": { "library_section_ids": libraries, "invited_id": invited },
+            "sharing_settings": settings,
         });
         self.as_owner(
             Method::Post,
@@ -351,7 +353,8 @@ impl Plex {
             .into_iter()
             .map(|(_, id)| id)
             .collect();
-        self.share(&machine, id, &libraries).await
+        self.share(&machine, id, &libraries, serde_json::json!({}))
+            .await
     }
 
     /// Remove the Home account `id`.

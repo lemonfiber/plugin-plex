@@ -9,6 +9,13 @@ use lemonfiber_ports::service::{
 };
 
 use super::super::tests::{plex, presenting, Shared};
+use super::limits::{closing, written as written_limit, CLOSED};
+
+/// Cy's filter, refusing what is certified 15 and over.
+const CY: &str = "contentRating!=gb/15%2Cgb/18";
+
+/// Dee's filter, admitting only what is certified U or PG.
+const DEE: &str = "contentRating=gb/U%2Cgb/PG";
 
 const IDENTITY: &str = r#"{"MediaContainer":{"claimed":true,"machineIdentifier":"the-machine"}}"#;
 
@@ -223,26 +230,6 @@ async fn the_household_is_the_owners_home_and_this_servers_shares_never_an_apps_
 }
 
 #[tokio::test]
-async fn a_share_read_where_the_owner_names_no_country_the_table_ages_holds_no_limit() {
-    let shared = claimed("household-unaged");
-    let fake = household(vec![(
-        Some(Method::Get),
-        "https://plex.tv/api/v2/user",
-        Answer::reply(200, r#"{"id":1}"#),
-    )]);
-
-    let limits: Vec<Option<u32>> = plex(&fake, &shared)
-        .household()
-        .await
-        .unwrap_or_default()
-        .into_iter()
-        .map(|member| member.access.age_limit)
-        .collect();
-
-    assert_eq!(limits, [Some(12), None, None, None, None]);
-}
-
-#[tokio::test]
 async fn a_household_plex_tv_will_not_list_readably_is_a_failure() {
     for broken in [
         (
@@ -254,11 +241,6 @@ async fn a_household_plex_tv_will_not_list_readably_is_a_failure() {
             Some(Method::Get),
             "https://plex.tv/api/home/users",
             Answer::reply(500, ""),
-        ),
-        (
-            Some(Method::Get),
-            "https://plex.tv/api/v2/user",
-            Answer::reply(200, "["),
         ),
     ] {
         let shared = claimed("household-broken");
@@ -329,7 +311,7 @@ async fn a_sign_in_stands_while_plex_tv_takes_its_token_as_a_member_who_may_watc
 }
 
 #[tokio::test]
-async fn an_invitation_shares_every_library_with_the_plex_tv_account_it_names() {
+async fn an_invitation_shares_every_library_closed_until_its_account_is_made_claimable() {
     let shared = claimed("household-invite");
     let fake = household(Vec::new());
 
@@ -343,6 +325,7 @@ async fn an_invitation_shares_every_library_with_the_plex_tv_account_it_names() 
             claimed: false,
             access: Access {
                 every_library: true,
+                disabled: true,
                 ..Access::default()
             },
             last_seen: None,
@@ -357,7 +340,7 @@ async fn an_invitation_shares_every_library_with_the_plex_tv_account_it_names() 
                 "machineIdentifier": "the-machine",
                 "invitedEmail": "new@example.org",
                 "librarySectionIds": [1001, 1002],
-                "settings": {},
+                "settings": closed_settings(),
             })
         )]
     );
@@ -477,7 +460,7 @@ async fn the_libraries_are_plexs_by_the_key_it_files_each_under() {
 }
 
 #[tokio::test]
-async fn the_ratings_are_the_owners_countrys_certificates_the_libraries_hold() {
+async fn the_ratings_are_the_certificates_of_the_owners_country_the_libraries_hold() {
     let shared = claimed("household-ratings");
     let fake = household(Vec::new());
 
@@ -530,6 +513,17 @@ async fn the_country_is_the_one_the_owners_plex_tv_account_names() {
             "{owner}"
         );
     }
+
+    let shared = claimed("household-country-unreadable");
+    let fake = household(vec![(
+        Some(Method::Get),
+        "https://plex.tv/api/v2/user",
+        Answer::reply(200, "["),
+    )]);
+    assert!(matches!(
+        plex(&fake, &shared).country().await,
+        Err(Failure::Refused { detail, .. }) if detail.contains("unreadably")
+    ));
 }
 
 fn libraries(keys: &[&str]) -> Allowed {
@@ -540,7 +534,8 @@ fn libraries(keys: &[&str]) -> Allowed {
 }
 
 #[tokio::test]
-async fn opening_libraries_rewrites_a_share_or_shares_them_with_a_home_account_shared_nothing() {
+async fn libraries_change_only_while_the_share_admits_nothing_and_a_new_share_is_filtered_from_the_start(
+) {
     let shared = claimed("household-open");
     let fake = household(Vec::new());
     let plex = plex(&fake, &shared);
@@ -553,18 +548,25 @@ async fn opening_libraries_rewrites_a_share_or_shares_them_with_a_home_account_s
         [
             (
                 Method::Put,
+                filtered("92", &closing(CY)),
+                serde_json::Value::Null
+            ),
+            (
+                Method::Put,
                 "https://plex.tv/api/servers/the-machine/shared_servers/502".to_owned(),
                 serde_json::json!({
                     "server_id": "the-machine",
                     "shared_server": { "library_section_ids": [1002] },
                 })
             ),
+            (Method::Put, filtered("92", CY), serde_json::Value::Null),
             (
                 Method::Post,
                 "https://plex.tv/api/servers/the-machine/shared_servers".to_owned(),
                 serde_json::json!({
                     "server_id": "the-machine",
                     "shared_server": { "library_section_ids": [1001, 1002], "invited_id": 90 },
+                    "sharing_settings": settings(""),
                 })
             ),
         ]
@@ -583,16 +585,39 @@ async fn a_library_plex_tv_does_not_list_is_refused_and_nothing_is_written() {
     assert!(written(&fake).is_empty());
 }
 
-/// The URL a share's filter is written at for the account `id`.
+/// The URL every filter of the shares with the account `id` is written at, as `filter`.
 fn filtered(id: &str, filter: &str) -> String {
     format!(
         "https://plex.tv/api/v2/sharings/{id}?{}",
-        form_encoded(&[("filterMovies", filter), ("filterTelevision", filter)])
+        form_encoded(&[
+            ("filterMovies", filter),
+            ("filterTelevision", filter),
+            ("filterMusic", filter),
+            ("filterPhotos", filter),
+        ])
     )
 }
 
+/// A share's settings holding every filter to `filter`.
+fn settings(filter: &str) -> serde_json::Value {
+    serde_json::json!({
+        "filterMovies": filter,
+        "filterTelevision": filter,
+        "filterMusic": filter,
+        "filterPhotos": filter,
+    })
+}
+
+fn closed_settings() -> serde_json::Value {
+    settings(CLOSED)
+}
+
+fn written_filter(age_limit: Option<u32>, unrated: Unrated) -> String {
+    written_limit(age_limit, unrated).unwrap_or_default()
+}
+
 #[tokio::test]
-async fn an_age_limit_on_a_share_is_written_as_a_filter_of_the_owners_countrys_certificates() {
+async fn an_age_limit_on_a_share_is_written_as_one_filter_over_every_kind_of_library() {
     let shared = claimed("household-limit");
     let fake = household(Vec::new());
     let plex = plex(&fake, &shared);
@@ -611,18 +636,19 @@ async fn an_age_limit_on_a_share_is_written_as_a_filter_of_the_owners_countrys_c
         .allow("92", &limit(None, Some(Unrated::HeldBack)))
         .await
         .is_ok());
-    assert!(plex
-        .allow("91", &limit(None, Some(Unrated::HeldBack)))
-        .await
-        .is_ok());
+    assert!(plex.allow("94", &limit(None, None)).await.is_ok());
 
+    let refusing_over_12 = written_filter(Some(12), Unrated::LetThrough);
+    let admitting_to_12 = written_filter(Some(12), Unrated::HeldBack);
+    let admitting_to_14 = written_filter(Some(14), Unrated::HeldBack);
     let urls: Vec<String> = written(&fake).into_iter().map(|(_, url, _)| url).collect();
     assert_eq!(
         urls,
         [
-            filtered("92", "contentRating!=gb/15%2Cgb/18%2Cgb/R18"),
-            filtered("92", "contentRating=gb/U%2Cgb/PG%2Cgb/12A%2Cgb/12"),
-            filtered("92", "contentRating=gb/U%2Cgb/PG%2Cgb/12A%2Cgb/12"),
+            filtered("92", &refusing_over_12),
+            filtered("92", &admitting_to_12),
+            filtered("92", &admitting_to_14),
+            filtered("94", DEE),
         ]
     );
 }
@@ -653,33 +679,118 @@ async fn an_age_limit_on_a_managed_account_is_the_restriction_profile_nearest_un
 }
 
 #[tokio::test]
-async fn an_age_limit_with_no_share_to_hold_or_no_country_to_say_it_in_is_refused() {
-    let shared = claimed("household-limit-refused");
-    let limited = Allowed {
-        libraries: None,
-        age_limit: Some(12),
+async fn an_age_limit_under_every_restriction_profile_is_refused_and_opens_nothing() {
+    let shared = claimed("household-profile-under");
+    let fake = household(Vec::new());
+
+    let allowed = Allowed {
+        libraries: Some(vec!["1".to_owned()]),
+        age_limit: Some(3),
         unrated: None,
     };
-    let fake = household(Vec::new());
     assert!(refused_naming(
-        plex(&fake, &shared).allow("96", &limited).await,
-        "no share"
-    ));
-
-    let fake = household(vec![(
-        Some(Method::Get),
-        "https://plex.tv/api/v2/user",
-        Answer::reply(200, r#"{"id":1,"country":"zz"}"#),
-    )]);
-    assert!(refused_naming(
-        plex(&fake, &shared).allow("92", &limited).await,
-        "ages no certificates"
+        plex(&fake, &shared).claimable("90", &allowed).await,
+        "youngest restriction profile"
     ));
     assert!(written(&fake).is_empty());
 }
 
 #[tokio::test]
-async fn suspending_a_member_keeps_their_share_open_to_no_library() {
+async fn a_restriction_profile_plex_tv_refuses_leaves_every_library_shut() {
+    let shared = claimed("household-profile-refused");
+    let fake = household(vec![(
+        Some(Method::Put),
+        "/api/v2/home/users/restricted/",
+        Answer::reply(500, ""),
+    )]);
+
+    let allowed = Allowed {
+        libraries: Some(vec!["1".to_owned(), "2".to_owned()]),
+        age_limit: Some(12),
+        unrated: None,
+    };
+    assert!(plex(&fake, &shared)
+        .claimable("90", &allowed)
+        .await
+        .is_err());
+    let urls: Vec<String> = written(&fake).into_iter().map(|(_, url, _)| url).collect();
+    assert_eq!(
+        urls,
+        ["https://plex.tv/api/v2/home/users/restricted/90?restrictionProfile=older_kid"]
+    );
+}
+
+#[tokio::test]
+async fn a_library_write_plex_tv_refuses_leaves_the_share_admitting_nothing() {
+    let shared = claimed("household-libraries-refused");
+    let fake = household(vec![(
+        Some(Method::Put),
+        "/shared_servers/502",
+        Answer::reply(500, ""),
+    )]);
+
+    assert!(plex(&fake, &shared)
+        .allow("92", &libraries(&["1", "2"]))
+        .await
+        .is_err());
+    let urls: Vec<String> = written(&fake).into_iter().map(|(_, url, _)| url).collect();
+    assert_eq!(
+        urls,
+        [
+            filtered("92", &closing(CY)),
+            "https://plex.tv/api/servers/the-machine/shared_servers/502".to_owned(),
+        ]
+    );
+}
+
+#[tokio::test]
+async fn a_share_plex_tv_will_not_close_keeps_its_libraries_as_they_were() {
+    let shared = claimed("household-close-refused");
+    let fake = household(vec![(
+        Some(Method::Put),
+        "https://plex.tv/api/v2/sharings/",
+        Answer::reply(500, ""),
+    )]);
+
+    assert!(plex(&fake, &shared)
+        .allow("92", &libraries(&["1", "2"]))
+        .await
+        .is_err());
+    assert!(!fake.asked_for("/shared_servers/502"));
+}
+
+#[tokio::test]
+async fn opening_no_library_closes_a_share_and_never_asks_plex_tv_for_an_empty_list() {
+    let shared = claimed("household-open-none");
+    let fake = household(Vec::new());
+    let plex = plex(&fake, &shared);
+
+    assert!(plex.claimable("92", &libraries(&[])).await.is_ok());
+    assert!(plex.claimable("90", &libraries(&[])).await.is_ok());
+
+    let urls: Vec<String> = written(&fake).into_iter().map(|(_, url, _)| url).collect();
+    assert_eq!(urls, [filtered("92", &closing(CY))]);
+}
+
+#[tokio::test]
+async fn an_age_limit_for_a_member_holding_no_share_is_refused_before_anything_is_written() {
+    let shared = claimed("household-limit-refused");
+    let fake = household(Vec::new());
+
+    let limited = Allowed {
+        libraries: Some(vec!["1".to_owned()]),
+        age_limit: Some(12),
+        unrated: None,
+    };
+    assert!(refused_naming(
+        plex(&fake, &shared).allow("96", &limited).await,
+        "no share"
+    ));
+    assert!(written(&fake).is_empty());
+}
+
+#[tokio::test]
+async fn suspending_a_member_keeps_their_share_and_limit_and_admits_nothing_until_allowed_again() {
     let shared = claimed("household-suspend");
     let fake = household(Vec::new());
     let plex = plex(&fake, &shared);
@@ -687,14 +798,55 @@ async fn suspending_a_member_keeps_their_share_open_to_no_library() {
     assert!(plex.suspend("92").await.is_ok());
     assert!(plex.suspend("90").await.is_ok());
 
-    assert_eq!(
-        written(&fake),
-        [(
-            Method::Put,
-            "https://plex.tv/api/servers/the-machine/shared_servers/502".to_owned(),
-            r#"{"server_id":"the-machine","shared_server":{"library_section_ids":[]}}"#.to_owned()
-        )]
+    let urls: Vec<String> = written(&fake).into_iter().map(|(_, url, _)| url).collect();
+    assert_eq!(urls, [filtered("92", &closing(CY))]);
+}
+
+#[tokio::test]
+async fn a_suspended_member_reads_switched_off_and_signs_in_to_nothing_until_allowed_again() {
+    let suspended = format!(
+        r#"[{{"id":92,"title":"Cy","status":"accepted","sharedServers":[{{"id":502,"machineIdentifier":"the-machine","allLibraries":true,"sharingSettings":{{"filterMovies":"{}"}}}}]}}]"#,
+        closing(CY)
     );
+    let shared = claimed("household-suspended");
+    let fake = household(vec![
+        (
+            Some(Method::Get),
+            "status=accepted",
+            Answer::reply(200, suspended),
+        ),
+        (
+            Some(Method::Get),
+            "https://plex.tv/api/v2/user",
+            Answer::reply(200, r#"{"id":92}"#),
+        ),
+    ]);
+    let plex = plex(&fake, &shared);
+
+    let cy = plex
+        .household()
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .find(|member| member.id == "92");
+    assert_eq!(
+        cy.map(|member| member.access),
+        Some(Access {
+            every_library: true,
+            age_limit: Some(14),
+            disabled: true,
+            ..Access::default()
+        })
+    );
+    let signed = Signed {
+        id: "92".to_owned(),
+        token: "member-token".to_owned(),
+    };
+    assert_eq!(plex.standing(&signed).await.ok(), Some(false));
+
+    assert!(plex.allow("92", &Allowed::default()).await.is_ok());
+    let urls: Vec<String> = written(&fake).into_iter().map(|(_, url, _)| url).collect();
+    assert_eq!(urls, [filtered("92", CY)]);
 }
 
 #[tokio::test]
