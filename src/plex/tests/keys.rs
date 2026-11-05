@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use lemonfiber_fixtures::http::{Answer, Fake};
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::service::{AppKeys as _, Astray, Dated, Failure, OutsideAccount};
+use lemonfiber_ports::service::{
+    AppKeys as _, Astray, Dated, Failure, OutsideAccount, OutsideServer,
+};
 
 use super::{plex, presenting, Shared, PRESENTED, TOKEN};
 
@@ -677,4 +679,51 @@ async fn an_app_with_no_account_or_several_or_one_plex_tv_names_no_uuid_for_is_r
         .account("Ana")
         .await
         .is_err());
+}
+
+fn root(answer: Answer) -> Arc<Fake> {
+    Fake::by_route(vec![(Method::Get, "http://plex:32400/", answer)])
+}
+
+#[tokio::test]
+async fn the_server_is_listed_under_the_name_and_identifier_plex_gives_itself() {
+    let shared = presenting("keys-listed-as");
+    let fake = root(Answer::reply(
+        200,
+        r#"{"MediaContainer":{"friendlyName":"Home & away","machineIdentifier":"the-machine","version":"1.41.0"}}"#,
+    ));
+
+    assert_eq!(
+        plex(&fake, &shared).listed_as().await.ok(),
+        Some(OutsideServer {
+            name: "Home & away".to_owned(),
+            id: "the-machine".to_owned(),
+        })
+    );
+    assert_eq!(
+        sent(&fake),
+        vec![(
+            Method::Get,
+            "http://plex:32400/".to_owned(),
+            Some(TOKEN.to_owned())
+        )]
+    );
+}
+
+#[tokio::test]
+async fn a_server_naming_itself_with_no_name_or_no_identifier_or_unreadably_is_listed_as_nothing() {
+    for body in [
+        r#"{"MediaContainer":{"friendlyName":"","machineIdentifier":"the-machine"}}"#,
+        r#"{"MediaContainer":{"friendlyName":"home","machineIdentifier":""}}"#,
+        r#"{"MediaContainer":{"machineIdentifier":"the-machine"}}"#,
+    ] {
+        let shared = presenting("keys-listed-as-unnamed");
+        assert!(
+            plex(&root(Answer::reply(200, body)), &shared)
+                .listed_as()
+                .await
+                .is_err(),
+            "{body}"
+        );
+    }
 }

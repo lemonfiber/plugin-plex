@@ -6,7 +6,7 @@
 use async_trait::async_trait;
 use lemonfiber_adapter_kit::endpoint::form_encoded;
 use lemonfiber_ports::http::{Method, Request, Response};
-use lemonfiber_ports::service::{AppKeys, Astray, Dated, Failure, OutsideAccount};
+use lemonfiber_ports::service::{AppKeys, Astray, Dated, Failure, OutsideAccount, OutsideServer};
 use quick_xml::events::Event;
 use quick_xml::{Reader, XmlVersion};
 use serde::Deserialize;
@@ -66,6 +66,16 @@ struct Who {
 struct Served {
     machine_identifier: String,
 }
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Listed {
+    friendly_name: String,
+    machine_identifier: String,
+}
+
+/// Plex's root, where it says the name plex.tv lists it under and which server it is.
+const ROOT: &str = "/";
 
 /// The servers plex.tv lists for the claiming account, by the identifier Plex presents.
 pub(super) const SERVERS: &str = "/api/servers";
@@ -499,6 +509,21 @@ impl AppKeys for Plex {
             uuid: user.uuid.clone(),
             username: user.username.clone(),
             title: user.title.clone(),
+        })
+    }
+
+    async fn listed_as(&self) -> Result<OutsideServer, Failure> {
+        let listed: Listed = self
+            .read(ROOT, "Plex did not say the name it is listed under")
+            .await?;
+        if listed.friendly_name.is_empty() || listed.machine_identifier.is_empty() {
+            return Err(self
+                .endpoint
+                .refused("Plex named itself with no name or no identifier"));
+        }
+        Ok(OutsideServer {
+            name: listed.friendly_name,
+            id: listed.machine_identifier,
         })
     }
 
