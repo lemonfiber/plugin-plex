@@ -6,7 +6,7 @@
 use async_trait::async_trait;
 use lemonfiber_adapter_kit::endpoint::form_encoded;
 use lemonfiber_ports::http::{Method, Request, Response};
-use lemonfiber_ports::service::{AppKeys, Astray, Dated, Failure};
+use lemonfiber_ports::service::{AppKeys, Astray, Dated, Failure, OutsideAccount};
 use quick_xml::events::Event;
 use quick_xml::{Reader, XmlVersion};
 use serde::Deserialize;
@@ -49,6 +49,8 @@ const LONGEST_APP: usize = 40;
 struct HomeUser {
     id: String,
     title: String,
+    uuid: String,
+    username: String,
     /// Whether it is a managed account and no administrator: one the claiming account
     /// made, which signs in to plex.tv as nobody else.
     managed: bool,
@@ -117,18 +119,26 @@ pub(super) fn attributes(xml: &str, element: &str, names: &[&str]) -> Vec<Vec<Op
 
 /// The accounts of the Plex Home `xml` lists.
 fn home_users(xml: &str) -> Vec<HomeUser> {
-    attributes(xml, ACCOUNT, &["id", "title", "restricted", "admin"])
-        .into_iter()
-        .filter_map(|read| match read.as_slice() {
-            [Some(id), Some(title), restricted, admin] if super::an_id(id) => Some(HomeUser {
+    attributes(
+        xml,
+        ACCOUNT,
+        &["id", "title", "restricted", "admin", "uuid", "username"],
+    )
+    .into_iter()
+    .filter_map(|read| match read.as_slice() {
+        [Some(id), Some(title), restricted, admin, uuid, username] if super::an_id(id) => {
+            Some(HomeUser {
                 id: id.clone(),
                 title: title.clone(),
+                uuid: uuid.clone().unwrap_or_default(),
+                username: username.clone().unwrap_or_default(),
                 managed: restricted.as_deref() == Some(FLAGGED)
                     && admin.as_deref() != Some(FLAGGED),
-            }),
-            _ => None,
-        })
-        .collect()
+            })
+        }
+        _ => None,
+    })
+    .collect()
 }
 
 /// The token `xml`, plex.tv's answer to switching to an account, names.
@@ -468,6 +478,28 @@ impl AppKeys for Plex {
                 .refused("the account was removed and the key is still taken"));
         }
         kept.gone(&id).map_err(|why| self.unkept(&why))
+    }
+
+    async fn account(&self, app: &str) -> Result<OutsideAccount, Failure> {
+        let made = self.made_for(app).await?;
+        let [user] = made.as_slice() else {
+            return Err(self.accounts.refused(if made.is_empty() {
+                "this adapter made no account for the app"
+            } else {
+                "this adapter holds more than one account made for the app"
+            }));
+        };
+        if user.uuid.is_empty() {
+            return Err(self
+                .accounts
+                .refused("plex.tv named the app's account with no uuid"));
+        }
+        Ok(OutsideAccount {
+            id: user.id.clone(),
+            uuid: user.uuid.clone(),
+            username: user.username.clone(),
+            title: user.title.clone(),
+        })
     }
 
     async fn astray(&self, app: &str) -> Result<Vec<Astray>, Failure> {

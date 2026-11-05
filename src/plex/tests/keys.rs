@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use lemonfiber_fixtures::http::{Answer, Fake};
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::service::{AppKeys as _, Astray, Dated, Failure};
+use lemonfiber_ports::service::{AppKeys as _, Astray, Dated, Failure, OutsideAccount};
 
 use super::{plex, presenting, Shared, PRESENTED, TOKEN};
 
@@ -621,4 +621,60 @@ async fn what_is_astray_is_never_guessed_without_the_record_or_the_home() {
         Err(Failure::Refused { .. })
     ));
     assert!(silent.requests().is_empty());
+}
+
+/// The owner; the managed account this adapter made for the app, named at plex.tv; and another
+/// titled for it.
+const NAMED: &str = r#"<MediaContainer size="3"><User id="1" title="Owner" admin="1"/><User id="77" uuid="a1b2c3d4e5f60718" username="" title="lemonfiber-request-gate" restricted="1"/><User id="78" uuid="ffff" title="lemonfiber-request-gate" restricted="1"/></MediaContainer>"#;
+
+fn home_listing(listing: &'static str) -> Arc<Fake> {
+    Fake::by_route(vec![(
+        Method::Get,
+        "https://plex.tv/api/home/users",
+        Answer::reply(200, listing),
+    )])
+}
+
+#[tokio::test]
+async fn an_apps_account_is_the_managed_account_made_for_it_as_plex_tv_names_it_and_never_its_token(
+) {
+    let shared = presenting("keys-account");
+    having_made(&shared, &["77"]);
+    let fake = home_listing(NAMED);
+
+    assert_eq!(
+        plex(&fake, &shared).account(APP).await.ok(),
+        Some(OutsideAccount {
+            id: "77".to_owned(),
+            uuid: "a1b2c3d4e5f60718".to_owned(),
+            username: String::new(),
+            title: APP.to_owned(),
+        })
+    );
+    assert!(!fake.asked_for("/switch"));
+}
+
+#[tokio::test]
+async fn an_app_with_no_account_or_several_or_one_plex_tv_names_no_uuid_for_is_refused() {
+    for (made, listing) in [
+        (&[][..], NAMED),
+        (&["77", "78"][..], NAMED),
+        (&["77"][..], ONE_TITLED),
+    ] {
+        let shared = presenting("keys-account-refused");
+        having_made(&shared, made);
+        let fake = home_listing(listing);
+        assert!(
+            matches!(
+                plex(&fake, &shared).account(APP).await,
+                Err(Failure::Refused { .. })
+            ),
+            "{made:?}"
+        );
+    }
+    let shared = presenting("keys-account-not-an-app");
+    assert!(plex(&home_listing(NAMED), &shared)
+        .account("Ana")
+        .await
+        .is_err());
 }

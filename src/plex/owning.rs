@@ -134,4 +134,16 @@ impl Ownership for Plex {
             Some(false) => self.claimed_with_code().await,
         }
     }
+
+    async fn claimed_by(&self) -> Result<Option<String>, Failure> {
+        if !matches!(self.owner().await?, Owner::Ours) {
+            return Ok(None);
+        }
+        let token = self.admin_token().await?;
+        self.whose(&token).await?.map(Some).ok_or_else(|| {
+            self.accounts.refused(
+                "plex.tv does not take the token Plex keeps for the account that claimed it",
+            )
+        })
+    }
 }
