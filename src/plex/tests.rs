@@ -370,3 +370,53 @@ async fn preferences_the_adapter_may_not_write_fail_the_claim_naming_them() {
     ));
     assert_eq!(preferences_of(&shared), fresh());
 }
+
+#[tokio::test]
+async fn plex_is_claimed_by_the_plex_tv_account_its_kept_token_belongs_to_once_it_is_ours() {
+    let shared = presenting("claimed-by");
+    let fake = Fake::by_path(vec![
+        ("/identity", identity(true)),
+        ("/:/prefs", Answer::reply(200, r#"{"MediaContainer":{}}"#)),
+        (
+            "https://plex.tv/api/v2/user",
+            Answer::reply(200, r#"{"id":4242}"#),
+        ),
+    ]);
+
+    assert_eq!(
+        plex(&fake, &shared).claimed_by().await.ok(),
+        Some(Some("4242".to_owned()))
+    );
+}
+
+#[tokio::test]
+async fn a_plex_nobody_holds_or_somebody_else_does_is_claimed_by_nobody_and_plex_tv_is_not_asked() {
+    for (claimed, preferences) in [(false, true), (true, false)] {
+        let shared = if preferences {
+            Shared::claimed("claimed-by-nobody")
+        } else {
+            Shared::holding(
+                "claimed-by-theirs",
+                Some(r#"<Preferences MachineIdentifier="m"/>"#),
+            )
+        };
+        let fake = Fake::by_path(vec![("/identity", identity(claimed))]);
+        assert_eq!(plex(&fake, &shared).claimed_by().await.ok(), Some(None));
+        assert!(!fake.asked_for("plex.tv"));
+    }
+}
+
+#[tokio::test]
+async fn a_kept_token_plex_tv_refuses_is_a_failure_rather_than_nobody() {
+    let shared = presenting("claimed-by-refused");
+    let fake = Fake::by_path(vec![
+        ("/identity", identity(true)),
+        ("/:/prefs", Answer::reply(200, r#"{"MediaContainer":{}}"#)),
+        ("https://plex.tv/api/v2/user", Answer::reply(401, "")),
+    ]);
+
+    assert!(matches!(
+        plex(&fake, &shared).claimed_by().await,
+        Err(Failure::Refused { detail, .. }) if detail.contains("does not take")
+    ));
+}
