@@ -7,8 +7,10 @@ use lemonfiber_contract::adapter::{about_path, ready_path, About};
 use lemonfiber_fixtures::http::{Answer, Fake};
 use tower::ServiceExt as _;
 
-use super::{about, kit, ADDRESS, DIGEST, RELEASE, UPSTREAM};
-use crate::plex::Plex;
+use super::{
+    about, kit, sign_ins, ADDRESS, DIGEST, RELEASE, SIGN_INS_PER_DEVICE, SIGN_INS_WAITING, UPSTREAM,
+};
+use crate::plex::{Plex, SignIns};
 
 fn a_key() -> String {
     ('e'..='t').collect()
@@ -282,4 +284,28 @@ async fn it_is_ready_while_plex_says_which_server_it_is() {
             (StatusCode::OK, b"false".as_slice())
         );
     }
+}
+
+#[test]
+fn how_many_sign_ins_wait_is_the_default_unless_a_setting_names_a_count_above_nought() {
+    assert_eq!(sign_ins(None, None), Ok(SignIns::default()));
+    assert_eq!(
+        sign_ins(Some(" 2 "), Some("10")),
+        Ok(SignIns {
+            per_device: 2,
+            in_all: 10,
+        })
+    );
+    assert_eq!(
+        sign_ins(Some("0"), None),
+        Err(format!(
+            "{SIGN_INS_PER_DEVICE} is \"0\", not a whole number above nought"
+        ))
+    );
+    assert_eq!(
+        sign_ins(None, Some("many")),
+        Err(format!(
+            "{SIGN_INS_WAITING} is \"many\", not a whole number above nought"
+        ))
+    );
 }

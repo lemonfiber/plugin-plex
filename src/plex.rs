@@ -26,6 +26,7 @@ mod screening;
 mod serving;
 
 pub use declared::presented;
+pub use household::SignIns;
 
 /// What every failure is blamed on.
 pub const SERVICE: &str = "plex";
@@ -70,6 +71,7 @@ pub struct Plex {
     code: Arc<dyn Holding>,
     internal_tls: Option<Https>,
     kept: Option<keys::Kept>,
+    signing: household::Signing,
 }
 
 /// What every answer Plex gives in JSON is wrapped in.
@@ -125,6 +127,21 @@ impl Plex {
             support,
             code,
             kept: None,
+            signing: household::Signing::default(),
+        }
+    }
+
+    /// The same Plex, letting as many sign-ins by a code wait at once as `limits` says,
+    /// each one's id drawn from `random`.
+    #[must_use]
+    pub fn signing_in_under(
+        self,
+        limits: SignIns,
+        random: Arc<dyn lemonfiber_ports::random::Random>,
+    ) -> Self {
+        Self {
+            signing: household::Signing::under(limits, random),
+            ..self
         }
     }
 
@@ -204,6 +221,7 @@ impl Plex {
             headers,
             body: None,
             pinned: None,
+            deadline: None,
         }
     }
 

@@ -31,6 +31,11 @@ async fn serve(settings: &Settings) -> Result<(), String> {
     if key.is_empty() {
         return Err("the plugin's key is empty".to_owned());
     }
+    let env = |name: &str| std::env::var(name).ok();
+    let sign_ins = plex_adapter::adapter::sign_ins(
+        env(plex_adapter::adapter::SIGN_INS_PER_DEVICE).as_deref(),
+        env(plex_adapter::adapter::SIGN_INS_WAITING).as_deref(),
+    )?;
     let web = Web::new().map_err(|why| format!("no HTTP client could be made: {why}"))?;
     let plex = Plex::new(
         Arc::new(web),
@@ -41,7 +46,8 @@ async fn serve(settings: &Settings) -> Result<(), String> {
             plex_adapter::adapter::CODE,
         )),
     )
-    .keeping_accounts_in(&settings.configuration);
+    .keeping_accounts_in(&settings.configuration)
+    .signing_in_under(sign_ins, Arc::new(lemonfiber_random::Os));
     let listener = tokio::net::TcpListener::bind(&settings.listen)
         .await
         .map_err(|why| format!("{} could not be listened on: {why}", settings.listen))?;

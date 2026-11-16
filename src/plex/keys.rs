@@ -204,6 +204,7 @@ impl Plex {
                 headers,
                 body,
                 pinned: None,
+                deadline: None,
             })
             .await
     }

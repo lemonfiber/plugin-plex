@@ -7,7 +7,7 @@ use lemonfiber_adapter_kit::{Kit, Readiness};
 use lemonfiber_contract::adapter::{About, Release};
 use lemonfiber_contract::capabilities::{media, owner};
 
-use crate::plex::{presented, Plex};
+use crate::plex::{presented, Plex, SignIns};
 
 /// Where Plex answers, by its service id and the port it listens on.
 pub const ADDRESS: &str = "http://plex:32400";
@@ -28,6 +28,35 @@ pub const RELEASE: &str = "1.43.4.10903-e5521bd8c";
 
 /// The digest of the image that release's recordings were taken from.
 pub const DIGEST: &str = "sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14";
+
+/// The variable naming how many sign-ins by a code one device may have waiting at once.
+pub const SIGN_INS_PER_DEVICE: &str = "SIGN_INS_PER_DEVICE";
+
+/// The variable naming how many sign-ins by a code may wait at once in all.
+pub const SIGN_INS_WAITING: &str = "SIGN_INS_WAITING";
+
+/// How many sign-ins by a code may wait at once, as `per_device` and `in_all` say: the
+/// default for whichever says nothing.
+///
+/// # Errors
+///
+/// Where either is not a whole number above nought.
+pub fn sign_ins(per_device: Option<&str>, in_all: Option<&str>) -> Result<SignIns, String> {
+    let defaults = SignIns::default();
+    let read = |said: Option<&str>, name: &str, default: usize| {
+        said.map_or(Ok(default), |said| {
+            said.trim()
+                .parse()
+                .ok()
+                .filter(|count| *count > 0)
+                .ok_or_else(|| format!("{name} is {said:?}, not a whole number above nought"))
+        })
+    };
+    Ok(SignIns {
+        per_device: read(per_device, SIGN_INS_PER_DEVICE, defaults.per_device)?,
+        in_all: read(in_all, SIGN_INS_WAITING, defaults.in_all)?,
+    })
+}
 
 /// What this adapter says it is: the contracts it speaks and the release it supports.
 #[must_use]

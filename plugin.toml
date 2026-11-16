@@ -1,4 +1,4 @@
-#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/d70b179fbfdef3eb473be96417cb6a19dd251368/contract/plugin-manifest.schema.json
+#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/71dfddb44ca9e577e26329e3982464a4c9b5a95b/contract/plugin-manifest.schema.json
 # Plex, as a lemonfiber plugin.
 #
 # Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md
@@ -82,6 +82,10 @@ media_types   = ["movies", "tv", "music"]
 shares_config = "/plex"
 upstream      = { code = { secret = "claim" } }
 outside       = { "owner.claim@1/claim-answers" = "plex.tv" }
+
+[service.env]
+SIGN_INS_PER_DEVICE = { setting = "plex:sign-ins-per-device", default = "1" }
+SIGN_INS_WAITING    = { setting = "plex:sign-ins-waiting", default = "64" }
 
 # ─── Wiring ──────────────────────────────────────────────────────────────────
 

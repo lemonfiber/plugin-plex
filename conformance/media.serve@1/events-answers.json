@@ -1,0 +1,10 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "This adapter does not tell Plex to send what happens, so it answers unsupported and the core reads Plex in place of hearing from it.",
+  "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/events", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "Plex is not told to send what happens by this adapter", "type": "unsupported"}
+  }
+}

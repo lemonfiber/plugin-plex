@@ -1,7 +1,9 @@
 use lemonfiber_fixtures::http::{Answer, Fake};
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::media::Kind;
-use lemonfiber_ports::service::{Failure, Fronted as _, Library as _, Upkeep as _};
+use lemonfiber_ports::media::TitleKind;
+use lemonfiber_ports::service::{
+    Allowing as _, Failure, Fronted as _, Library as _, Recounting as _, Tuning as _, Upkeep as _,
+};
 
 use super::{asked, plex, Shared, TOKEN};
 
@@ -16,18 +18,29 @@ fn unsupported<T>(answer: &Result<T, Failure>) -> bool {
 }
 
 #[tokio::test]
-async fn a_title_is_looked_for_among_the_films_or_the_series_by_kind() {
+async fn a_title_is_looked_for_among_the_films_the_series_or_the_albums_by_kind() {
     let shared = Shared::claimed("has-item");
     let fake = Fake::by_path(vec![
         ("type=2", Answer::reply(200, FOUND)),
         ("type=1", Answer::reply(200, NONE)),
+        ("type=9", Answer::reply(200, FOUND)),
     ]);
     let plex = plex(&fake, &shared);
 
-    assert!(matches!(plex.has_item(Kind::Tv, "test sh").await, Ok(true)));
     assert!(matches!(
-        plex.has_item(Kind::Movies, "test sh").await,
+        plex.has_item(TitleKind::Tv, "test sh").await,
+        Ok(true)
+    ));
+    assert!(matches!(
+        plex.has_item(TitleKind::Movies, "test sh").await,
         Ok(false)
+    ));
+    assert!(matches!(
+        plex.has_item(TitleKind::Music, "test sh").await,
+        Ok(true)
+    ));
+    assert!(unsupported(
+        &plex.has_item(TitleKind::Books, "test sh").await
     ));
     assert_eq!(
         asked(&fake).first(),
@@ -130,5 +143,22 @@ async fn proxies_origins_and_restarts_are_unsupported() {
     assert!(unsupported(&plex.allowed_origins().await));
     assert!(unsupported(&plex.allow_only("https://a.example").await));
     assert!(unsupported(&plex.restart().await));
+    assert!(unsupported(
+        &plex.allow_origins(&["https://a.example".to_owned()]).await
+    ));
+    assert!(fake.requests().is_empty());
+}
+
+#[tokio::test]
+async fn events_and_live_tv_are_unsupported_and_ask_plex_nothing() {
+    let shared = Shared::claimed("unsupported-live");
+    let fake = Fake::silent();
+    let plex = plex(&fake, &shared);
+
+    assert!(unsupported(&plex.events(None, None, None, None).await));
+    assert!(unsupported(&plex.channels("92").await));
+    assert!(unsupported(&plex.guide("92", 12).await));
+    assert!(unsupported(&plex.tune("92", "5").await));
+    assert!(unsupported(&plex.untune("2999-01-01T00:00:00Z").await));
     assert!(fake.requests().is_empty());
 }
