@@ -78,6 +78,7 @@ impl Plex {
                 headers,
                 body: None,
                 pinned: None,
+                deadline: None,
             })
             .await?;
         if !response.is_success() {

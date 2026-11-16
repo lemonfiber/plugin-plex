@@ -6,9 +6,10 @@
 use async_trait::async_trait;
 use lemonfiber_adapter_kit::endpoint::form_encoded;
 use lemonfiber_ports::http::Method;
+use lemonfiber_ports::instant::Instant;
 use lemonfiber_ports::service::{
     Access, Allowed, Certificate, Failure, Household, Invited, MediaServer, Member, NamedLibrary,
-    Session, Signed, Unrated,
+    Session, SignInCode, Signed, Unrated,
 };
 use serde::Deserialize;
 
@@ -18,6 +19,10 @@ use super::{an_id, Plex};
 mod accounts;
 mod certificates;
 mod limits;
+mod signing;
+
+pub use signing::SignIns;
+pub(super) use signing::Signing;
 
 use accounts::Account;
 use certificates::Rated;
@@ -112,7 +117,8 @@ impl Account {
             last_seen: self
                 .share
                 .as_ref()
-                .and_then(|share| share.last_seen.clone()),
+                .and_then(|share| share.last_seen.as_deref())
+                .and_then(Instant::from_service_text),
         }
     }
 }
@@ -312,6 +318,18 @@ impl Plex {
     }
 }
 
+impl Plex {
+    /// Whether the account `signed` names is one of the household's, open to a library.
+    async fn standing_of(&self, signed: &Signed) -> Result<bool, Failure> {
+        let machine = self.machine().await?;
+        Ok(self
+            .household_of(&machine)
+            .await?
+            .iter()
+            .any(|account| account.id == signed.id && !account.closed()))
+    }
+}
+
 #[async_trait]
 impl Household for Plex {
     async fn household(&self) -> Result<Vec<Member>, Failure> {
@@ -337,12 +355,15 @@ impl Household for Plex {
         if self.whose(&signed.token).await?.as_deref() != Some(signed.id.as_str()) {
             return Ok(false);
         }
-        let machine = self.machine().await?;
-        Ok(self
-            .household_of(&machine)
-            .await?
-            .iter()
-            .any(|account| account.id == signed.id && !account.closed()))
+        self.standing_of(signed).await
+    }
+
+    async fn sign_in_by_code(&self, device: &str) -> Result<SignInCode, Failure> {
+        self.pin_for(device).await
+    }
+
+    async fn signed_by_code(&self, id: &str) -> Result<Option<Signed>, Failure> {
+        self.pin_proved(id).await
     }
 
     async fn invite(&self, name: &str) -> Result<Member, Failure> {
@@ -416,17 +437,17 @@ impl Household for Plex {
         }
     }
 
-    async fn when_invited(&self, since: &str) -> Result<Vec<Invited>, Failure> {
+    async fn when_invited(&self, since: Instant) -> Result<Vec<Invited>, Failure> {
         let machine = self.machine().await?;
         Ok(self
             .household_of(&machine)
             .await?
             .into_iter()
             .filter_map(|account| {
-                let at = account.linked_at?;
-                (at.as_str() >= since).then_some(Invited {
+                let at = Instant::from_service_text(account.linked_at.as_deref()?)?;
+                (at >= since).then_some(Invited {
                     member: account.id,
-                    at,
+                    at: Some(at),
                 })
             })
             .collect())

@@ -120,6 +120,7 @@ fn declared() -> Declared {
             ),
             poster: format!("{BASE}{METADATA}/{ITEM}/thumb"),
             backdrop: format!("{BASE}{METADATA}/{ITEM}/art"),
+            playlist: None,
         },
         ports: Ports {
             upstream: PORT,

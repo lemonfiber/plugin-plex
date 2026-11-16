@@ -1,12 +1,16 @@
 //! Looking over Plex's libraries again, the series it holds, and reading one item afresh.
-//! Plex keeps no list of proxies or origins its API sets and is not asked to start again by
-//! this adapter, so the rest is unsupported.
+//! Plex keeps no list of proxies or origins its API sets, is not asked to start again or to
+//! send what happens by this adapter, and its live TV is not answered here, so the rest is
+//! unsupported.
 
 use async_trait::async_trait;
 use lemonfiber_adapter_kit::endpoint::form_encoded;
 use lemonfiber_ports::http::Method;
-use lemonfiber_ports::media::Kind;
-use lemonfiber_ports::service::{Failure, Fronted, Library, SeriesHeld, Upkeep};
+use lemonfiber_ports::media::TitleKind;
+use lemonfiber_ports::service::{
+    Allowing, Channel, Failure, Fronted, Heard, Library, Listing, Recounting, SeriesHeld, Tuned,
+    Tuning, Upkeep,
+};
 
 use super::screening::Listed;
 use super::{an_id, Plex, ABSENT, METADATA};
@@ -19,9 +23,17 @@ const NO_RESTART: &str = "Plex is not asked to start again by this adapter";
 
 const NOTHING_THERE: &str = "Plex holds no item under that id";
 
+const NO_BOOKS: &str = "Plex keeps no library of books";
+
+const NO_EVENTS: &str = "Plex is not told to send what happens by this adapter";
+
+const NO_LIVE_TV: &str = "Plex's live TV is not answered by this adapter";
+
 const FILMS: &str = "1";
 
 const SERIES: &str = "2";
+
+const ALBUMS: &str = "9";
 
 const REFRESH_ALL: &str = "/library/sections/all/refresh";
 
@@ -34,10 +46,12 @@ impl Plex {
 
 #[async_trait]
 impl Library for Plex {
-    async fn has_item(&self, kind: Kind, term: &str) -> Result<bool, Failure> {
+    async fn has_item(&self, kind: TitleKind, term: &str) -> Result<bool, Failure> {
         let kind = match kind {
-            Kind::Movies => FILMS,
-            Kind::Tv => SERIES,
+            TitleKind::Movies => FILMS,
+            TitleKind::Tv => SERIES,
+            TitleKind::Music => ALBUMS,
+            TitleKind::Books => return Err(Self::unsupported(NO_BOOKS)),
         };
         let listed = self
             .listed(
@@ -123,5 +137,44 @@ impl Fronted for Plex {
 
     async fn restart(&self) -> Result<(), Failure> {
         Err(Self::unsupported(NO_RESTART))
+    }
+}
+
+#[async_trait]
+impl Allowing for Plex {
+    async fn allow_origins(&self, _origins: &[String]) -> Result<(), Failure> {
+        Err(Self::unsupported(NO_ORIGINS))
+    }
+}
+
+#[async_trait]
+impl Recounting for Plex {
+    async fn events(
+        &self,
+        _address: Option<&str>,
+        _pin: Option<&str>,
+        _key: Option<&str>,
+        _every: Option<u32>,
+    ) -> Result<Option<Heard>, Failure> {
+        Err(Self::unsupported(NO_EVENTS))
+    }
+}
+
+#[async_trait]
+impl Tuning for Plex {
+    async fn channels(&self, _member: &str) -> Result<Vec<Channel>, Failure> {
+        Err(Self::unsupported(NO_LIVE_TV))
+    }
+
+    async fn guide(&self, _member: &str, _hours: u32) -> Result<Vec<Listing>, Failure> {
+        Err(Self::unsupported(NO_LIVE_TV))
+    }
+
+    async fn tune(&self, _member: &str, _channel: &str) -> Result<Option<Tuned>, Failure> {
+        Err(Self::unsupported(NO_LIVE_TV))
+    }
+
+    async fn untune(&self, _closes_by: &str) -> Result<(), Failure> {
+        Err(Self::unsupported(NO_LIVE_TV))
     }
 }

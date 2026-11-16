@@ -7,6 +7,7 @@ use lemonfiber_ports::service::{
     Access, Allowed, Certificate, Failure, Household as _, Invited, MediaServer as _, Member,
     NamedLibrary, Session, Signed, Unrated,
 };
+use lemonfiber_ports::Instant;
 
 use super::super::tests::{plex, presenting, Shared};
 use super::limits::{closing, written as written_limit, CLOSED};
@@ -164,7 +165,7 @@ async fn the_household_is_the_owners_home_and_this_servers_shares_never_an_apps_
             name: name.to_owned(),
             claimed,
             access,
-            last_seen: last_seen.map(str::to_owned),
+            last_seen: last_seen.and_then(Instant::from_service_text),
         };
     assert_eq!(
         plex(&fake, &shared).household().await.ok(),
@@ -421,7 +422,7 @@ async fn an_invitation_is_dated_by_when_plex_tv_linked_its_account() {
     let fake = household(Vec::new());
 
     let since = plex(&fake, &shared)
-        .when_invited("2026-09-15T00:00:00Z")
+        .when_invited(Instant::from_service_text("2026-09-15T00:00:00Z").unwrap_or_default())
         .await;
 
     assert_eq!(
@@ -429,11 +430,11 @@ async fn an_invitation_is_dated_by_when_plex_tv_linked_its_account() {
         Some(vec![
             Invited {
                 member: "91".to_owned(),
-                at: "2026-10-01T00:00:00Z".to_owned(),
+                at: Instant::from_service_text("2026-10-01T00:00:00Z"),
             },
             Invited {
                 member: "94".to_owned(),
-                at: "2026-11-03T00:00:00Z".to_owned(),
+                at: Instant::from_service_text("2026-11-03T00:00:00Z"),
             },
         ])
     );
@@ -893,3 +894,5 @@ async fn a_household_read_with_the_record_of_apps_accounts_unreadable_is_a_failu
     assert!(plex(&fake, &shared).household().await.is_err());
     assert!(!fake.asked_for("plex.tv"));
 }
+
+mod signing;
