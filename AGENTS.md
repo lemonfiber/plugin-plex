@@ -10,12 +10,14 @@
 ## What this repo is
 
 Plex Media Server as a first-party lemonfiber plugin: `plugin.toml` and the
-adapter that speaks the `owner.claim@1` and `media.serve@1` contracts in front of
-Plex. The adapter is the Rust crate at the root, built on `lemonfiber-adapter-kit`
-from the core at the commit `Cargo.toml` pins, into the image the `Dockerfile`
-builds. `release.yml` publishes that image from every commit on `main` and from
-the train's tag, through spec's reusable `adapter-release`. `plugin.toml` runs Plex
-alone and does not run the adapter yet; its recordings are under `fixtures/`.
+adapter that speaks the `owner.claim@1`, `media.serve@1` and `identity.source@1`
+contracts in front of Plex. The adapter is the Rust crate at the root, built on
+`lemonfiber-adapter-kit` from the core at the commit `Cargo.toml` pins, into the
+image the `Dockerfile` builds. `release.yml` publishes that image from every
+commit on `main` and from the train's tag, through spec's reusable
+`adapter-release`. `plugin.toml` runs Plex and the adapter in front of it; the
+recordings of Plex's own answers are under `fixtures/`, and the adapter's under
+`conformance/`.
 
 ## The rules you cannot break
 

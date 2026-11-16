@@ -20,8 +20,10 @@ and signs the household in through Plex.
   its internal TLS port with the certificate lemonfiber makes for it. It tells a
   guard in front of Plex which paths serve an item's bytes, and answers the
   guard whether a member may have them by asking Plex with that member's own
-  token. A member signs in by a code plex.tv issues to their device and they
-  approve at `plex.tv/link`.
+  token. It answers lemonfiber who the household is: the Home of the account
+  that claimed Plex and the accounts its libraries are shared with. A member
+  signs in by a code plex.tv issues to their device and they approve at
+  `plex.tv/link`.
 - **Two settings:** `plex:sign-ins-per-device` (default 1) is how many sign-ins by
   a code one device may have waiting at once, a newer one letting go of its
   oldest; `plex:sign-ins-waiting` (default 64) is how many may wait in all, a

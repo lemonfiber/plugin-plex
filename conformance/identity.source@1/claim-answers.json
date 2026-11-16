@@ -1,0 +1,10 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "A Plex member signs in at plex.tv, so the adapter checks no name and password and answers unsupported; the core signs members in by a code instead.",
+  "request": {"method": "POST", "path": "/lemonfiber/identity.source/v1/claim", "accept": "application/json"},
+  "response": {
+    "status": 500,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "a Plex member signs in at plex.tv, so no name and password is checked here", "type": "unsupported"}
+  }
+}

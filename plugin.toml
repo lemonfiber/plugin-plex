@@ -72,16 +72,16 @@ digest        = "sha256:80b677556e221c83ce7f6b54791ee32aa116a82dcdcb2e18361e1530
 tag           = "main-c963463c77ca"
 criticality   = "enhancing"
 reaches       = "plex.tv"
-asks_for      = "Exchanges the claim code the operator entered at plex.tv, once, to claim Plex, and makes, lists and removes at plex.tv the managed Home accounts that are the keys lemonfiber mints for an app. Everything else it answers lemonfiber's owner.claim and media.serve contracts with comes from Plex, beside it."
+asks_for      = "Exchanges the claim code the operator entered at plex.tv, once, to claim Plex; makes, lists and removes at plex.tv the managed Home accounts that are the keys lemonfiber mints for an app; reads the household, its shares, restriction profiles and country from plex.tv; and asks plex.tv for the PIN a member signs in by and whom it proved. Everything else it answers lemonfiber's owner.claim, media.serve and identity.source contracts with comes from Plex, beside it."
 config_path   = "/config"
 listens       = 8080
-speaks        = ["owner.claim@1", "media.serve@1"]
+speaks        = ["owner.claim@1", "media.serve@1", "identity.source@1"]
 fronts        = "plex"
-provides      = ["media.serve"]
+provides      = ["media.serve", "identity.source"]
 media_types   = ["movies", "tv", "music"]
 shares_config = "/plex"
 upstream      = { code = { secret = "claim" } }
-outside       = { "owner.claim@1/claim-answers" = "plex.tv" }
+outside       = { "owner.claim@1/claim-answers" = "plex.tv", "identity.source@1/sign_in_by_code-answers" = "plex.tv", "identity.source@1/signed_by_code-answers" = "plex.tv" }
 
 [service.env]
 SIGN_INS_PER_DEVICE = { setting = "plex:sign-ins-per-device", default = "1" }

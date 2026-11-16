@@ -1,0 +1,10 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "The adapter asked plex.tv for a short PIN for the device and answers its code, plex.tv/link where it is approved and when it lapses, under an id of its own that names nothing of the PIN; the code, the id and the moment are held to their shape. Taken locally, because it reaches plex.tv; record --check leaves it as recorded.",
+  "request": {"method": "POST", "path": "/lemonfiber/identity.source/v1/sign_in_by_code", "accept": "application/json"},
+  "response": {
+    "status": 200,
+    "headers": {"content-type": "application/json"},
+    "json": {"approve_at": "https://plex.tv/link", "code": "6FP9", "id": "<redacted>", "lapses_at": 1794865488}
+  }
+}
