@@ -60,10 +60,13 @@ fn kind_of(body: &[u8]) -> Option<serde_json::Value> {
 }
 
 #[test]
-fn it_speaks_the_claim_and_the_media_server_contracts_and_names_the_release_its_recordings_were_taken_from(
+fn it_speaks_the_claim_the_media_server_and_the_household_contracts_and_names_the_release_its_recordings_were_taken_from(
 ) {
     let said = about();
-    assert_eq!(said.speaks, ["owner.claim@1", "media.serve@1"]);
+    assert_eq!(
+        said.speaks,
+        ["owner.claim@1", "media.serve@1", "identity.source@1"]
+    );
     assert_eq!(said.upstream, UPSTREAM);
     assert_eq!(
         said.releases
@@ -256,7 +259,7 @@ async fn a_capability_it_does_not_speak_is_refused_as_unknown() {
     let (status, _) = answered_by(
         &Fake::silent(),
         "POST",
-        "/lemonfiber/identity.source/v1/household",
+        "/lemonfiber/status.watch/v1/reachable",
         Some(&key),
         "{}",
     )

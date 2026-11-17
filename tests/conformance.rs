@@ -159,7 +159,10 @@ async fn every_case_of_every_contract_spoken_is_recorded_and_read_as_the_core_re
     let pinned = pinned();
     let filing = filing();
     let spoken = spoken();
-    assert_eq!(spoken, ["owner.claim@1", "media.serve@1"]);
+    assert_eq!(
+        spoken,
+        ["owner.claim@1", "media.serve@1", "identity.source@1"]
+    );
     let mut faults = Vec::new();
     for capability in lemonfiber_contract::capabilities::all() {
         let named = lemonfiber_contract::spoken(capability.name, capability.major);

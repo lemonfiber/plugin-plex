@@ -1,0 +1,10 @@
+{
+  "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
+  "note": "Acts on the account invite answered, and invite was refused, so the recorder asks nothing and records invite's refusal.",
+  "request": {"method": "POST", "path": "/lemonfiber/identity.source/v1/unclaim", "accept": "application/json"},
+  "response": {
+    "status": 502,
+    "headers": {"content-type": "application/problem+json"},
+    "json": {"detail": "identity.source@1/invite-answers was refused: plex rejected the credential", "type": "unauthorised"}
+  }
+}

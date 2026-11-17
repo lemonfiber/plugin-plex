@@ -5,7 +5,7 @@ use std::sync::Arc;
 use lemonfiber_adapter_kit::members::Asking;
 use lemonfiber_adapter_kit::{Kit, Readiness};
 use lemonfiber_contract::adapter::{About, Release};
-use lemonfiber_contract::capabilities::{media, owner};
+use lemonfiber_contract::capabilities::{identity, media, owner};
 
 use crate::plex::{presented, Plex, SignIns};
 
@@ -65,6 +65,7 @@ pub fn about() -> About {
         speaks: vec![
             lemonfiber_contract::spoken(owner::claim::CAPABILITY, owner::claim::MAJOR),
             lemonfiber_contract::spoken(media::serve::CAPABILITY, media::serve::MAJOR),
+            lemonfiber_contract::spoken(identity::source::CAPABILITY, identity::source::MAJOR),
         ],
         upstream: UPSTREAM.to_owned(),
         releases: vec![Release {
@@ -91,7 +92,8 @@ pub fn kit(key: String, plex: Arc<Plex>) -> Kit {
         .ready_when(ready)
         .asked_by_members(presented(), asking)
         .serving(owner::claim::served(Arc::clone(&plex)))
-        .serving(media::serve::served(plex))
+        .serving(media::serve::served(Arc::clone(&plex)))
+        .serving(identity::source::served(plex))
 }
 
 #[cfg(test)]
