@@ -1,10 +1,10 @@
 {
   "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
-  "note": "This adapter does not answer Plex's live TV, so it answers unsupported.",
+  "note": "The case closes a stream by an id this adapter never tuned, so the adapter refuses it without asking Plex to terminate anything: it ends only a live session it opened and has not closed.",
   "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/untune", "accept": "application/json"},
   "response": {
     "status": 500,
     "headers": {"content-type": "application/problem+json"},
-    "json": {"detail": "Plex's live TV is not answered by this adapter", "type": "unsupported"}
+    "json": {"detail": "a live stream is closed by the id tune answered", "type": "refused"}
   }
 }

@@ -3,18 +3,14 @@
 //! to or removed as a key, whatever else is titled for an app.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::io::Write as _;
-use std::os::unix::fs::OpenOptionsExt as _;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::plex::record::Record;
+
 /// The file the accounts are kept in, in the adapter's configuration directory.
 const KEPT_FILE: &str = "plex-app-accounts.json";
-
-const STAGED: &str = "plex-app-accounts.json.staged";
-
-const OWNER_ONLY: u32 = 0o600;
 
 /// The ids of the accounts made for each app.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,14 +34,14 @@ impl Made {
 /// Where the accounts are kept.
 #[derive(Debug, Clone)]
 pub(in crate::plex) struct Kept {
-    at: PathBuf,
+    record: Record,
 }
 
 impl Kept {
     /// The accounts kept in the configuration directory `directory`.
     pub(in crate::plex) fn in_directory(directory: &Path) -> Self {
         Self {
-            at: directory.to_path_buf(),
+            record: Record::in_directory(directory, KEPT_FILE),
         }
     }
 
@@ -55,12 +51,7 @@ impl Kept {
     ///
     /// Why the record could not be read, where it is there and unreadable.
     pub(in crate::plex) fn read(&self) -> Result<Made, String> {
-        match std::fs::read(self.at.join(KEPT_FILE)) {
-            Ok(bytes) => serde_json::from_slice(&bytes)
-                .map_err(|_| format!("{KEPT_FILE} is not the record this adapter keeps")),
-            Err(why) if why.kind() == std::io::ErrorKind::NotFound => Ok(Made::default()),
-            Err(why) => Err(format!("{KEPT_FILE} could not be read: {why}")),
-        }
+        self.record.read()
     }
 
     /// Record `id` as made for `app`.
@@ -92,20 +83,7 @@ impl Kept {
     }
 
     fn write(&self, made: &Made) -> Result<(), String> {
-        let text = serde_json::to_vec(made).unwrap_or_default();
-        let staged = self.at.join(STAGED);
-        let _ = std::fs::remove_file(&staged);
-        let written = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .mode(OWNER_ONLY)
-            .open(&staged)
-            .and_then(|mut file| {
-                file.write_all(&text)?;
-                file.sync_all()
-            })
-            .and_then(|()| std::fs::rename(&staged, self.at.join(KEPT_FILE)));
-        written.map_err(|why| format!("{KEPT_FILE} could not be written: {why}"))
+        self.record.write(made)
     }
 }
 

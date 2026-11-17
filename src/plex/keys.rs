@@ -286,7 +286,7 @@ impl Plex {
     }
 
     /// The token of the Home account `id`, switched to as the claiming account.
-    async fn switched_to(&self, id: &str) -> Result<String, Failure> {
+    pub(super) async fn switched_to(&self, id: &str) -> Result<String, Failure> {
         let response = self
             .as_owner(Method::Post, &format!("{HOME_USERS}/{id}/switch"), None)
             .await?;

@@ -20,9 +20,11 @@ mod accounts;
 mod certificates;
 mod limits;
 mod signing;
+mod watching;
 
 pub use signing::SignIns;
 pub(super) use signing::Signing;
+pub(super) use watching::Watcher;
 
 use accounts::Account;
 use certificates::Rated;

@@ -1,6 +1,6 @@
 {
   "recorded_from": "docker.io/plexinc/pms-docker@sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14",
-  "note": "What a guard in front of Plex enforces, written by the adapter without asking Plex: each byte path with its space, the paths refused, the question to the adapter, and how a member's token reaches Plex.",
+  "note": "What a guard in front of Plex enforces, written by the adapter without asking Plex: each byte path with its space, each live-stream path with the parameters bound to its stream, the paths refused, the question to the adapter, and how a member's token reaches Plex.",
   "request": {"method": "POST", "path": "/lemonfiber/media.serve/v1/declared", "accept": "application/json"},
   "response": {
     "status": 200,
@@ -38,7 +38,18 @@
           "space": "metadata"
         }
       ],
-      "live": [],
+      "live": [
+        {"pattern": "(?i)^/livetv/sessions/(?P<stream>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/[0-9A-Za-z_-]{1,64}/(?:index\\.m3u8|[0-9A-Za-z_-]{1,64}\\.(?:ts|m4s|mp4|aac|vtt))$", "stream": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
+        {"parameter": "session", "pattern": "(?i)^/video/:/transcode/universal/session/(?P<stream>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/[0-9a-z]{1,16}/(?:index\\.m3u8|header|[0-9]{1,10}\\.(?:ts|m4s|vtt))$", "stream": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
+        {
+          "bound": [
+            {"parameter": "path", "pattern": "^/livetv/sessions/(?P<stream>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/[0-9A-Za-z_-]{1,64}/index\\.m3u8$"}
+          ],
+          "parameter": "session",
+          "pattern": "(?i)^/video/:/transcode/universal/start\\.m3u8$",
+          "stream": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        }
+      ],
       "locations": {"backdrop": "{base}/library/metadata/{item}/art", "poster": "{base}/library/metadata/{item}/thumb", "stream": "{base}/video/:/transcode/universal/start.m3u8?path=%2Flibrary%2Fmetadata%2F{item}&protocol=hls&X-Plex-Platform=Chrome"},
       "ports": {"encrypted": null, "internal_tls": null, "upstream": 32400},
       "question": {

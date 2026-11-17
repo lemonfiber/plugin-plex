@@ -46,6 +46,24 @@ struct SharedLibrary {
 struct Settings {
     #[serde(default)]
     filter_movies: Option<String>,
+    #[serde(default)]
+    filter_television: Option<String>,
+    #[serde(default)]
+    allow_tuners: Option<serde_json::Value>,
+}
+
+impl Settings {
+    /// Whether they let the member use the server's tuners: `allowTuners` read as a whole
+    /// number other than 0, and nothing else.
+    fn tuners(&self) -> bool {
+        match &self.allow_tuners {
+            Some(serde_json::Value::Number(allowed)) => allowed.as_u64().is_some_and(|n| n != 0),
+            Some(serde_json::Value::String(allowed)) => {
+                allowed.parse::<u64>().is_ok_and(|n| n != 0)
+            }
+            _ => false,
+        }
+    }
 }
 
 /// One plex.tv account the claiming account is linked to, as plex.tv lists it.
@@ -82,6 +100,11 @@ pub(super) struct Share {
     pub(super) libraries: Vec<String>,
     /// The filter of certificates it holds the member to, as plex.tv keeps it.
     pub(super) filter: String,
+    /// The filter it holds the member's television to, live TV's included, as plex.tv
+    /// keeps it.
+    pub(super) television: String,
+    /// Whether it lets the member use the server's tuners, and so watch live TV.
+    pub(super) tuners: bool,
     /// When plex.tv last saw the member on this server.
     pub(super) last_seen: Option<String>,
 }
@@ -165,11 +188,15 @@ fn share_of(friend: &Friend, machine: &str) -> Option<Share> {
         .shared_servers
         .iter()
         .find(|shared| shared.machine_identifier == machine)?;
-    let filter = shared
+    let settings = shared
         .sharing_settings
         .as_ref()
-        .or(friend.sharing_settings.as_ref())
+        .or(friend.sharing_settings.as_ref());
+    let filter = settings
         .and_then(|settings| settings.filter_movies.clone())
+        .unwrap_or_default();
+    let television = settings
+        .and_then(|settings| settings.filter_television.clone())
         .unwrap_or_default();
     Some(Share {
         id: shared.id,
@@ -180,6 +207,8 @@ fn share_of(friend: &Friend, machine: &str) -> Option<Share> {
             .filter_map(|library| key_of(&library.key))
             .collect(),
         filter,
+        television,
+        tuners: settings.is_some_and(Settings::tuners),
         last_seen: shared.last_seen_at.clone(),
     })
 }

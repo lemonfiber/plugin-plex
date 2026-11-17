@@ -22,8 +22,10 @@ mod keys;
 mod members;
 mod owning;
 mod preferences;
+mod record;
 mod screening;
 mod serving;
+mod tuning;
 
 pub use declared::presented;
 pub use household::SignIns;
@@ -71,6 +73,7 @@ pub struct Plex {
     code: Arc<dyn Holding>,
     internal_tls: Option<Https>,
     kept: Option<keys::Kept>,
+    opened: Option<tuning::Opened>,
     signing: household::Signing,
 }
 
@@ -127,6 +130,7 @@ impl Plex {
             support,
             code,
             kept: None,
+            opened: None,
             signing: household::Signing::default(),
         }
     }
@@ -145,12 +149,13 @@ impl Plex {
         }
     }
 
-    /// The same Plex, keeping the accounts it makes as apps' keys in its own
-    /// configuration directory `directory`.
+    /// The same Plex, keeping the accounts it makes as apps' keys and the live sessions it
+    /// tunes in its own configuration directory `directory`.
     #[must_use]
-    pub fn keeping_accounts_in(self, directory: &Path) -> Self {
+    pub fn keeping_records_in(self, directory: &Path) -> Self {
         Self {
             kept: Some(keys::Kept::in_directory(directory)),
+            opened: Some(tuning::Opened::in_directory(directory)),
             ..self
         }
     }

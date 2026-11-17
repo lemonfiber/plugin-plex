@@ -6,6 +6,10 @@ use super::{plex, Shared};
 
 const HOUSEHOLD: &str = "https://plex.household.example";
 
+const LIVE: &str = "dc30f95e-6379-44f7-8168-172ffc820496";
+
+const OTHER_LIVE: &str = "1f2a6c1e-8b3d-4e5f-9a7b-1c2d3e4f5a6b";
+
 async fn declared() -> Declared {
     let shared = Shared::holding("declared", None);
     let fake = Fake::silent();
@@ -212,13 +216,60 @@ async fn bytes_served_under_ids_no_question_takes_are_refused() {
         "/library/streams/7.srt",
         "/downloadQueue/1/item/2/media",
         "/sync/items/3",
-        "/livetv/sessions/abc/index.m3u8",
-        "/LiveTV/sessions/abc/index.m3u8",
+        "/livetv",
+        "/livetv/",
+        "/livetv/dvrs/6/channels/5.1/tune",
+        "/LiveTV/epg/channels",
+        "/livetv/sessions",
+        "/livetv/sessions/abc",
+        "/LiveTV/sessions/abc/",
+        &format!("/livetv/sessions/{LIVE}/lemonfiber/index.m3u8"),
     ] {
         assert!(refused(path), "{path}");
     }
     for path in ["/library/sections", "/library/metadata/1", "/identity"] {
         assert!(!refused(path), "{path}");
+    }
+}
+
+#[tokio::test]
+async fn under_livetv_only_what_a_live_stream_path_covers_end_to_end_goes_on() {
+    let declared = declared().await;
+    let decided = |path: &str| {
+        if declared
+            .live
+            .iter()
+            .any(|live| compiled(&live.pattern).is_match(path))
+        {
+            Some(path.to_owned())
+        } else if declared
+            .refused
+            .iter()
+            .any(|pattern| compiled(pattern).is_match(path))
+        {
+            None
+        } else {
+            Some(path.to_owned())
+        }
+    };
+    let session = format!("/livetv/sessions/{LIVE}/lemonfiber");
+    for path in [
+        format!("{session}/index.m3u8"),
+        format!("{session}/00001.ts"),
+    ] {
+        assert_eq!(decided(&path), Some(path.clone()), "{path}");
+    }
+    for path in [
+        format!("{session}/extra.bin"),
+        format!("{session}/index.m3u8/more"),
+        format!("{session}/deeper/00001.ts"),
+        format!("{session}/"),
+        format!("/livetv/sessions/{LIVE}"),
+        format!("/livetv/sessions/{LIVE}/index.m3u8"),
+        "/livetv/sessions/not-a-session/lemonfiber/index.m3u8".to_owned(),
+        "/livetv/dvrs/6/channels/5.1/tune".to_owned(),
+    ] {
+        assert_eq!(decided(&path), None, "{path}");
     }
 }
 
@@ -255,4 +306,154 @@ async fn a_members_token_reaches_plex_in_the_parameter_and_header_plex_reads() {
     assert!(shape.is_match("abcDEF0123456789_-xy"));
     assert!(!shape.is_match("short"));
     assert!(!shape.is_match("abcDEF0123456789_-xy z"));
+}
+
+/// The live stream a request on `path` with the decoded query `query` names under
+/// ARCH-R417, read against the first live-stream path covering it: from its group or its
+/// parameter, carried once under that spelling, every bound parameter and, beside a
+/// parameter, the path's own group naming the same; none where it names none or two.
+fn streamed(declared: &Declared, path: &str, query: &[(&str, &str)]) -> Option<String> {
+    let once = |name: &str| {
+        let carried: Vec<&(&str, &str)> = query
+            .iter()
+            .filter(|(carried, _)| carried.eq_ignore_ascii_case(name))
+            .collect();
+        match carried.as_slice() {
+            [(spelled, value)] if *spelled == name => Some((*value).to_owned()),
+            _ => None,
+        }
+    };
+    let live = declared.live.iter().find(|live| {
+        compiled(&live.pattern).is_match(path)
+            && live.parameter.as_deref().is_none_or(|parameter| {
+                query
+                    .iter()
+                    .any(|(carried, _)| carried.eq_ignore_ascii_case(parameter))
+            })
+    })?;
+    let in_path = compiled(&live.pattern).captures(path).and_then(|found| {
+        found
+            .name("stream")
+            .map(|stream| stream.as_str().to_owned())
+    });
+    let stream = match &live.parameter {
+        None => in_path?,
+        Some(parameter) => {
+            let carried = once(parameter)?;
+            if in_path.is_some_and(|named| named != carried) {
+                return None;
+            }
+            carried
+        }
+    };
+    let agreed = live.bound.iter().all(|bound| {
+        once(&bound.parameter).is_some_and(|value| {
+            compiled(&bound.pattern)
+                .captures(&value)
+                .and_then(|found| found.name("stream"))
+                .is_some_and(|named| named.as_str() == stream)
+        })
+    });
+    (agreed && compiled(&live.stream).is_match(&stream)).then_some(stream)
+}
+
+#[tokio::test]
+async fn a_transcode_of_a_live_session_is_passed_only_where_its_path_reads_the_session_it_serves() {
+    let declared = declared().await;
+    let start = "/video/:/transcode/universal/start.m3u8";
+    let reading = |stream: &str| format!("/livetv/sessions/{stream}/lemonfiber/index.m3u8");
+    let same = reading(LIVE);
+    let other = reading(OTHER_LIVE);
+
+    assert_eq!(
+        streamed(
+            &declared,
+            start,
+            &[("session", LIVE), ("path", &same), ("protocol", "hls")]
+        ),
+        Some(LIVE.to_owned())
+    );
+    for query in [
+        vec![("session", LIVE), ("path", other.as_str())],
+        vec![("session", LIVE), ("path", "/library/metadata/5")],
+        vec![("session", LIVE)],
+        vec![("session", LIVE), ("path", &same), ("path", &same)],
+        vec![("session", LIVE), ("Path", &same)],
+        vec![("Session", LIVE), ("path", &same)],
+        vec![("session", "not-a-session"), ("path", &same)],
+    ] {
+        assert_eq!(streamed(&declared, start, &query), None, "{query:?}");
+    }
+}
+
+#[tokio::test]
+async fn a_live_transcodes_segments_are_passed_only_where_their_path_and_session_name_one_live_stream(
+) {
+    let declared = declared().await;
+    let segment =
+        |stream: &str| format!("/video/:/transcode/universal/session/{stream}/base/00001.ts");
+
+    assert_eq!(
+        streamed(&declared, &segment(LIVE), &[("session", LIVE)]),
+        Some(LIVE.to_owned())
+    );
+    assert_eq!(
+        streamed(&declared, &segment(OTHER_LIVE), &[("session", LIVE)]),
+        None
+    );
+    assert_eq!(
+        streamed(
+            &declared,
+            &format!("/livetv/sessions/{LIVE}/lemonfiber/00001.ts"),
+            &[]
+        ),
+        Some(LIVE.to_owned())
+    );
+}
+
+#[tokio::test]
+async fn an_item_transcodes_segments_carrying_no_session_are_no_live_stream_and_no_items_byte_path()
+{
+    let declared = declared().await;
+    let segment =
+        "/video/:/transcode/universal/session/bfb15d67-b7db-432b-8ecd-16ec7a10951c/base/00001.ts";
+
+    assert_eq!(streamed(&declared, segment, &[]), None);
+    assert_eq!(covered(&declared, segment, &[]), None);
+}
+
+#[tokio::test]
+async fn every_live_stream_path_ends_at_a_playlist_or_segment_file() {
+    let declared = declared().await;
+    let covers = |path: &str| {
+        declared
+            .live
+            .iter()
+            .any(|live| compiled(&live.pattern).is_match(path))
+    };
+    let session = format!("/livetv/sessions/{LIVE}/lemonfiber");
+    let transcoded = format!("/video/:/transcode/universal/session/{LIVE}/base");
+
+    for path in [
+        format!("{session}/index.m3u8"),
+        format!("{session}/00001.ts"),
+        format!("{transcoded}/index.m3u8"),
+        format!("{transcoded}/00001.ts"),
+        "/video/:/transcode/universal/start.m3u8".to_owned(),
+    ] {
+        assert!(covers(&path), "{path}");
+    }
+    for path in [
+        format!("{session}/index.m3u8/more"),
+        format!("{session}/deeper/00001.ts"),
+        format!("{session}/"),
+        format!("{transcoded}/index.m3u8/more"),
+        format!("{transcoded}/x/y/00001.ts"),
+        "/video/:/transcode/universal/start.m3u8/more".to_owned(),
+        format!("/livetv/sessions/{LIVE}/index.m3u8"),
+    ] {
+        assert!(!covers(&path), "{path}");
+    }
+    assert!(declared.live.iter().all(|live| live.pattern.ends_with('$')
+        && live.bound.iter().all(|bound| bound.pattern.ends_with('$'))));
 }

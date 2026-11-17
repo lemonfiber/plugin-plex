@@ -15,6 +15,7 @@ mod keys;
 mod members;
 mod screening;
 mod serving;
+mod tuning;
 
 pub(super) const BASE: &str = "http://plex:32400";
 
@@ -89,7 +90,7 @@ pub(super) fn presenting(name: &str) -> Shared {
 
 pub(super) fn plex(fake: &Arc<Fake>, shared: &Shared) -> Plex {
     Plex::new(fake.clone(), BASE, shared.path(), Arc::new(CODE.to_owned()))
-        .keeping_accounts_in(&shared.adapter())
+        .keeping_records_in(&shared.adapter())
 }
 
 pub(super) fn identity(claimed: bool) -> Answer {
