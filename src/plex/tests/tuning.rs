@@ -543,3 +543,45 @@ async fn a_record_that_cannot_be_read_or_written_ends_no_session_it_cannot_accou
     assert!(closed.is_err());
     assert_eq!(terminated(&fake), [Some(TOKEN.to_owned())]);
 }
+
+#[tokio::test]
+async fn a_member_the_household_counts_disabled_sees_no_channel_and_tunes_nothing() {
+    let shared = presenting("live-disabled");
+    let fake = live_with(
+        grid(),
+        vec![
+            (
+                Some(Method::Get),
+                "status=accepted",
+                Answer::reply(
+                    200,
+                    r#"[
+{"id":99,"title":"Hal","status":"accepted","sharedServers":[{"id":509,"machineIdentifier":"the-machine","allLibraries":false,"sharingSettings":{"allowTuners":1}}]},
+{"id":100,"title":"Ivy","status":"accepted","sharedServers":[{"id":510,"machineIdentifier":"the-machine","allLibraries":true,"sharingSettings":{"allowTuners":1,"filterMovies":"label=lemonfiber-held"}}]}
+]"#,
+                ),
+            ),
+            (
+                Some(Method::Get),
+                "https://plex.tv/api/servers/the-machine/shared_servers",
+                Answer::reply(
+                    200,
+                    r#"<MediaContainer><SharedServer id="509" userID="99" accessToken="hal-own-token-0123456789"/><SharedServer id="510" userID="100" accessToken="ivy-own-token-0123456789"/></MediaContainer>"#,
+                ),
+            ),
+        ],
+    );
+    let plex = plex(&fake, &shared);
+
+    for member in ["99", "100"] {
+        assert!(
+            matches!(plex.channels(member).await, Ok(channels) if channels.is_empty()),
+            "{member}"
+        );
+        assert!(
+            matches!(plex.tune(member, CHANNEL).await, Ok(None)),
+            "{member}"
+        );
+    }
+    assert!(tuned_asked(&fake).is_empty());
+}

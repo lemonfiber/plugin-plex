@@ -40,15 +40,15 @@ impl Watcher {
 
 impl Plex {
     /// The member `member` as they watch live TV on this server, or none where they are no
-    /// member of its household, their share does not let them use its tuners or admits
-    /// nothing, or no token of their own is found.
+    /// member of its household, the household counts them disabled, their share does not
+    /// let them use its tuners or admits nothing, or no token of their own is found.
     pub(in crate::plex) async fn watcher(&self, member: &str) -> Result<Option<Watcher>, Failure> {
         let machine = self.machine().await?;
         let Some(account) = self
             .household_of(&machine)
             .await?
             .into_iter()
-            .find(|account| account.id == member)
+            .find(|account| account.id == member && !account.closed())
         else {
             return Ok(None);
         };
