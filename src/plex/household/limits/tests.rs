@@ -167,3 +167,47 @@ fn a_filter_that_would_admit_no_certificate_admits_nothing_rather_than_everythin
         "contentRating!=gb/18"
     );
 }
+
+#[test]
+fn a_television_filter_admits_a_programme_only_where_every_part_of_it_does() {
+    let none: [String; 0] = [];
+    let kids = ["Kids".to_owned()];
+
+    assert!(super::admits("", None, &none));
+    assert!(super::admits(
+        "contentRating=TV-Y%2CTV-G",
+        Some("tv-g"),
+        &none
+    ));
+    assert!(!super::admits(
+        "contentRating=TV-Y%2CTV-G",
+        Some("TV-MA"),
+        &none
+    ));
+    assert!(!super::admits("contentRating=TV-Y%2CTV-G", None, &none));
+    assert!(super::admits("contentRating!=TV-MA", None, &none));
+    assert!(!super::admits(
+        "contentRating!=TV-MA,TV-14",
+        Some("TV-14"),
+        &none
+    ));
+    assert!(!super::admits("label=kids", Some("TV-Y"), &none));
+    assert!(super::admits(
+        "label=kids|contentRating=TV-Y",
+        Some("TV-Y"),
+        &kids
+    ));
+    assert!(!super::admits("label!=kids", None, &kids));
+    assert!(!super::admits(CLOSED, Some("TV-Y"), &none));
+    assert!(!super::admits("broken", Some("TV-Y"), &none));
+    assert!(!super::admits("year=2020", Some("TV-Y"), &none));
+}
+
+#[test]
+fn a_restriction_profile_admits_only_what_the_table_ages_at_or_under_it() {
+    assert!(super::profile_admits("older_kid", Some("PG")));
+    assert!(!super::profile_admits("older_kid", Some("R")));
+    assert!(!super::profile_admits("older_kid", None));
+    assert!(!super::profile_admits("older_kid", Some("zz/unaged")));
+    assert!(!super::profile_admits("no_such_profile", Some("G")));
+}

@@ -2,7 +2,7 @@ use lemonfiber_fixtures::http::{Answer, Fake};
 use lemonfiber_ports::http::Method;
 use lemonfiber_ports::media::TitleKind;
 use lemonfiber_ports::service::{
-    Allowing as _, Failure, Fronted as _, Library as _, Recounting as _, Tuning as _, Upkeep as _,
+    Allowing as _, Failure, Fronted as _, Library as _, Recounting as _, Upkeep as _,
 };
 
 use super::{asked, plex, Shared, TOKEN};
@@ -150,15 +150,11 @@ async fn proxies_origins_and_restarts_are_unsupported() {
 }
 
 #[tokio::test]
-async fn events_and_live_tv_are_unsupported_and_ask_plex_nothing() {
-    let shared = Shared::claimed("unsupported-live");
+async fn events_are_unsupported_and_ask_plex_nothing() {
+    let shared = Shared::claimed("unsupported-events");
     let fake = Fake::silent();
     let plex = plex(&fake, &shared);
 
     assert!(unsupported(&plex.events(None, None, None, None).await));
-    assert!(unsupported(&plex.channels("92").await));
-    assert!(unsupported(&plex.guide("92", 12).await));
-    assert!(unsupported(&plex.tune("92", "5").await));
-    assert!(unsupported(&plex.untune("2999-01-01T00:00:00Z").await));
     assert!(fake.requests().is_empty());
 }

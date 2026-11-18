@@ -5,8 +5,8 @@
 use async_trait::async_trait;
 use lemonfiber_ports::http::Method;
 use lemonfiber_ports::service::{
-    Addressee, Answers, BytePath, Declared, Declaring, Failure, InQuery, Locations, Ports,
-    Presentation, Question, Token, BASE, ITEM, MAY,
+    Addressee, Answers, Bound, BytePath, Declared, Declaring, Failure, InQuery, LivePath,
+    Locations, Ports, Presentation, Question, Token, BASE, ITEM, MAY,
 };
 
 use super::{Plex, LONGEST_ID, METADATA, PORT, TOKEN};
@@ -41,6 +41,25 @@ const REFUSED: [&str; 4] = [
     "(?i)^/livetv(?:/|$)",
 ];
 
+const LIVE_SESSIONS: &str = "/livetv/sessions/";
+
+const LIVE_STREAM: &str = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+const TRANSCODED_LIVE: &str = "(?i)^/video/:/transcode/universal/start\\.m3u8$";
+
+const TRANSCODED_LIVE_SEGMENTS: &str = "(?i)^/video/:/transcode/universal/session/";
+
+const LIVE_CONSUMER: &str = "[0-9A-Za-z_-]{1,64}";
+
+const LIVE_PLAYLIST: &str = "index\\.m3u8";
+
+const LIVE_SEGMENT: &str = "[0-9A-Za-z_-]{1,64}\\.(?:ts|m4s|mp4|aac|vtt)";
+
+const TRANSCODED_SEGMENT: &str =
+    "[0-9a-z]{1,16}/(?:index\\.m3u8|header|[0-9]{1,10}\\.(?:ts|m4s|vtt))";
+
+const LIVE_SESSION_PARAMETER: &str = "session";
+
 const STREAMED: &str = "protocol=hls&X-Plex-Platform=Chrome";
 
 /// Where the guard presents a member's token to Plex: in the query parameter Plex reads
@@ -50,6 +69,14 @@ pub fn presented() -> Presentation {
     Presentation::Query {
         parameter: TOKEN.to_owned(),
     }
+}
+
+fn live_stream() -> String {
+    format!("^{LIVE_STREAM}$")
+}
+
+fn live_session() -> String {
+    format!("{LIVE_SESSIONS}(?P<stream>{LIVE_STREAM})/{LIVE_CONSUMER}/")
 }
 
 fn digits() -> String {
@@ -100,7 +127,31 @@ fn declared() -> Declared {
                 ITEM_SPACE,
             ),
         ],
-        live: Vec::new(),
+        live: vec![
+            LivePath {
+                pattern: format!("(?i)^{}(?:{LIVE_PLAYLIST}|{LIVE_SEGMENT})$", live_session()),
+                parameter: None,
+                stream: live_stream(),
+                bound: Vec::new(),
+            },
+            LivePath {
+                pattern: format!(
+                    "{TRANSCODED_LIVE_SEGMENTS}(?P<stream>{LIVE_STREAM})/{TRANSCODED_SEGMENT}$"
+                ),
+                parameter: Some(LIVE_SESSION_PARAMETER.to_owned()),
+                stream: live_stream(),
+                bound: Vec::new(),
+            },
+            LivePath {
+                pattern: TRANSCODED_LIVE.to_owned(),
+                parameter: Some(LIVE_SESSION_PARAMETER.to_owned()),
+                stream: live_stream(),
+                bound: vec![Bound {
+                    parameter: TRANSCODED_FROM.to_owned(),
+                    pattern: format!("^{}{LIVE_PLAYLIST}$", live_session()),
+                }],
+            },
+        ],
         refused: REFUSED.map(str::to_owned).to_vec(),
         question: Some(Question {
             method: Method::Get,

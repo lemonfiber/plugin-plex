@@ -46,7 +46,7 @@ async fn serve(settings: &Settings) -> Result<(), String> {
             plex_adapter::adapter::CODE,
         )),
     )
-    .keeping_accounts_in(&settings.configuration)
+    .keeping_records_in(&settings.configuration)
     .signing_in_under(sign_ins, Arc::new(lemonfiber_random::Os));
     let listener = tokio::net::TcpListener::bind(&settings.listen)
         .await

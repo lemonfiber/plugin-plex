@@ -13,6 +13,12 @@ const RATING: &str = "contentRating";
 /// What a share's filter names the certificates it refuses by.
 const NOT_RATING: &str = "contentRating!";
 
+/// What a share's filter names the labels it admits by.
+const LABEL: &str = "label";
+
+/// What a share's filter names the labels it refuses by.
+const NOT_LABEL: &str = "label!";
+
 /// How a share's filter separates its parts, each of which an item must meet.
 const PARTS: &str = "|";
 
@@ -78,6 +84,39 @@ pub(super) fn read(kept: &str) -> (Option<u32>, Unrated) {
         }
     }
     (None, Unrated::LetThrough)
+}
+
+/// Whether a share's filter `kept` admits a programme rated `certificate` and carrying
+/// `labels`: every part of it met, a part admitting certificates or labels refusing one
+/// that carries none of them, and a part it does not know refusing everything.
+pub(super) fn admits(kept: &str, certificate: Option<&str>, labels: &[String]) -> bool {
+    let rated = certificate.map(str::to_lowercase);
+    let carried: Vec<String> = labels.iter().map(|label| label.to_lowercase()).collect();
+    parts(kept).all(|part| {
+        let Some((by, values)) = part.split_once('=') else {
+            return false;
+        };
+        let named: Vec<String> = named(values).into_iter().map(str::to_lowercase).collect();
+        match by {
+            RATING => rated.as_ref().is_some_and(|rated| named.contains(rated)),
+            NOT_RATING => rated.as_ref().is_none_or(|rated| !named.contains(rated)),
+            LABEL => carried.iter().any(|label| named.contains(label)),
+            NOT_LABEL => carried.iter().all(|label| !named.contains(label)),
+            _ => false,
+        }
+    })
+}
+
+/// Whether a programme rated `certificate` is within what a managed account held to the
+/// restriction profile `profile` may watch: a certificate the table ages at or under the
+/// profile's age, and nothing unrated or unaged, nor anything under a profile Plex does not
+/// name.
+pub(super) fn profile_admits(profile: &str, certificate: Option<&str>) -> bool {
+    profile_age(profile).is_some_and(|limit| {
+        certificate
+            .and_then(certificates::aged)
+            .is_some_and(|rated| rated.age <= limit)
+    })
 }
 
 /// Whether a share's filter `kept` admits nothing.
