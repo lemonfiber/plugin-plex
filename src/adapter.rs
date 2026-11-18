@@ -26,8 +26,7 @@ pub const UPSTREAM: &str = "Plex Media Server";
 /// The Plex Media Server release this adapter's recordings were taken from.
 pub const RELEASE: &str = "1.43.4.10903-e5521bd8c";
 
-/// The digest of the image that release's recordings were taken from.
-pub const DIGEST: &str = "sha256:e0ab27395614a8e1a4fdf84c6bc60ac664915cfdde70c52d030c7728a1c48e14";
+include!(concat!(env!("OUT_DIR"), "/fronted.rs"));
 
 /// The variable naming how many sign-ins by a code one device may have waiting at once.
 pub const SIGN_INS_PER_DEVICE: &str = "SIGN_INS_PER_DEVICE";

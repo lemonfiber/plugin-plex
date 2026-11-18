@@ -52,9 +52,11 @@ recordings of Plex's own answers are under `fixtures/`, and the adapter's under
   until a handshake presents the certificate (`ARCH-R345`, `ARCH-R346`).
 - **The core's crates move with the train.** The `rev` in `Cargo.toml` is the
   core commit `targets.toml` names, the same for every `lemonfiber-*` crate.
-- **Moving Plex's digest** means recording every response again against the new
-  image in the same change, moving `RELEASE` and `DIGEST` in `src/adapter.rs`
-  with it, and committing the `proofs.json` the checks write.
+- **Plex's digest has one home, `plugin.toml`.** `build.rs` reads the digest of the
+  service the adapter fronts from it into `DIGEST`. Moving Plex's digest means
+  recording every response again against the new image in the same change, moving
+  `RELEASE` in `src/adapter.rs` with it, and committing the `proofs.json` the checks
+  write.
 
 ## Checks
 
