@@ -23,9 +23,6 @@ pub const CODE: &str = "code";
 /// The upstream this adapter fronts, as its project names itself.
 pub const UPSTREAM: &str = "Plex Media Server";
 
-/// The Plex Media Server release this adapter's recordings were taken from.
-pub const RELEASE: &str = "1.43.4.10903-e5521bd8c";
-
 include!(concat!(env!("OUT_DIR"), "/fronted.rs"));
 
 /// The variable naming how many sign-ins by a code one device may have waiting at once.
