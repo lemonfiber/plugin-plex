@@ -21,8 +21,6 @@ const NO_RESTART: &str = "Plex is not asked to start again by this adapter";
 
 const NOTHING_THERE: &str = "Plex holds no item under that id";
 
-const NO_BOOKS: &str = "Plex keeps no library of books";
-
 const NO_EVENTS: &str = "Plex is not told to send what happens by this adapter";
 
 const FILMS: &str = "1";
@@ -47,7 +45,12 @@ impl Library for Plex {
             TitleKind::Movies => FILMS,
             TitleKind::Tv => SERIES,
             TitleKind::Music => ALBUMS,
-            TitleKind::Books => return Err(Self::unsupported(NO_BOOKS)),
+            TitleKind::Books | TitleKind::Audiobooks | TitleKind::Podcasts => {
+                return Err(Self::unsupported(&format!(
+                    "Plex keeps no library of {}",
+                    kind.media_type()
+                )))
+            }
         };
         let listed = self
             .listed(
