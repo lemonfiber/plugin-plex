@@ -39,9 +39,12 @@ async fn a_title_is_looked_for_among_the_films_the_series_or_the_albums_by_kind(
         plex.has_item(TitleKind::Music, "test sh").await,
         Ok(true)
     ));
-    assert!(unsupported(
-        &plex.has_item(TitleKind::Books, "test sh").await
-    ));
+    for kind in [TitleKind::Books, TitleKind::Audiobooks, TitleKind::Podcasts] {
+        assert!(
+            unsupported(&plex.has_item(kind, "test sh").await),
+            "{kind:?}"
+        );
+    }
     assert_eq!(
         asked(&fake).first(),
         Some(&(
