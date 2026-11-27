@@ -1,4 +1,4 @@
-#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/cea723ebe8dbe1c4accd07be9b6a1bfb4a57122e/contract/plugin-manifest.schema.json
+#:schema https://raw.githubusercontent.com/lemonfiber/lemonfiber/d0c1f1cb7a2a1bda769eaf313ebde0bd2608e564/contract/plugin-manifest.schema.json
 # Plex, as a lemonfiber plugin.
 #
 # Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md
@@ -105,6 +105,7 @@ dashboard_group = "Watch"
 [[recipe]]
 id    = "furnish"
 title = "Point the claimed server at the library the stack already fills"
+on    = "claim"
 why   = """
 Once the adapter has claimed Plex, Plex keeps the token of the account that \
 claimed it, and making the libraries and telling the request service which Plex \
