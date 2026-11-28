@@ -1,8 +1,7 @@
 # Plex for lemonfiber
 
-**This plugin is not ready to install.** Its `plugin.toml` does not run the
-adapter this repository builds yet, and its first-run flow asks Plex for a claim
-Plex answers only to the machine it runs on. It is not in the
+Its `plugin.toml` runs Plex and, in front of it, the adapter this repository
+builds, which claims Plex with the code plex.tv shows you. It is not in the
 [lemonfiber plugin catalogue](https://github.com/lemonfiber/lemonfiber-plugins).
 
 ## What it is for
