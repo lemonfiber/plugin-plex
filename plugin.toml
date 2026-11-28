@@ -3,10 +3,10 @@
 #
 # Contract: https://github.com/lemonfiber/spec/blob/main/20-architecture/contracts/plugin-manifest.md
 #
-# DRAFT. The digest and tag are real, and every file in fixtures/ is written by
-# `lemonfiber plugin record` off that image, never claimed. It does not run the
-# adapter this repository builds yet, and its first-run flow asks Plex for a claim
-# Plex answers only to the machine it runs on.
+# The digest and tag are real, and every file in fixtures/ is written by
+# `lemonfiber plugin record` off that image, never claimed. It runs Plex and, in
+# front of it, the adapter this repository builds, which claims Plex with the
+# claim code plex.tv/claim shows the operator.
 #
 # Everything lemonfiber does on this plugin's behalf comes from this file, and it
 # knows nothing about the plugin that is not declared here (ARCH-R83). Nothing in
